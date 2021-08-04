@@ -149,7 +149,7 @@ pub struct SkolemTyVar(Uniq);
 pub struct MetaTyVar(Uniq);
 
 /// Mutable state updated during typechecking.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Cx {
   uniq_gen: UniqGen,
   skolem_names: HashMap<SkolemTyVar, Name>,
