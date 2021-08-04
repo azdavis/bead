@@ -1,7 +1,7 @@
 //! Definitions of data types.
 
-use crate::uniq::{Uniq, UniqGen};
 use std::collections::HashMap;
+use uniq::{Uniq, UniqGen};
 
 /// A name in code, aka a variable, an identifier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
