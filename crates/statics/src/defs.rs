@@ -59,7 +59,8 @@ impl Ty {
 pub struct Rho(Ty);
 
 impl Rho {
-  pub(crate) fn new(ty: Ty) -> Self {
+  /// Returns a new [`Rho`].
+  pub fn new(ty: Ty) -> Self {
     #[cfg(debug_assertions)]
     Self::check(&ty);
     Self(ty)
@@ -71,7 +72,8 @@ impl Rho {
     }
   }
 
-  pub(crate) fn into_inner(self) -> Ty {
+  /// Unwraps the [`Ty`].
+  pub fn into_inner(self) -> Ty {
     self.0
   }
 
@@ -82,7 +84,7 @@ impl Rho {
 
 /// No [`Ty::ForAll`] at all, i.e. a monotype.
 #[derive(Debug, Clone)]
-pub struct Tau(Ty);
+pub(crate) struct Tau(Ty);
 
 impl Tau {
   pub(crate) fn new(ty: Ty) -> Self {
