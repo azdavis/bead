@@ -55,10 +55,61 @@ impl Ty {
 }
 
 /// No top-level [`Ty::ForAll`].
-pub type Rho = Ty;
+#[derive(Debug, Clone)]
+pub struct Rho(Ty);
+
+impl Rho {
+  pub(crate) fn new(ty: Ty) -> Self {
+    #[cfg(debug_assertions)]
+    Self::check(&ty);
+    Self(ty)
+  }
+
+  fn check(ty: &Ty) {
+    if let Ty::ForAll(_, _) = ty {
+      panic!("top-level ForAll in Rho: {:?}", ty);
+    }
+  }
+
+  pub(crate) fn into_inner(self) -> Ty {
+    self.0
+  }
+
+  pub(crate) fn as_ref(&self) -> &Ty {
+    &self.0
+  }
+}
 
 /// No [`Ty::ForAll`] at all, i.e. a monotype.
-pub type Tau = Ty;
+#[derive(Debug, Clone)]
+pub struct Tau(Ty);
+
+impl Tau {
+  pub(crate) fn new(ty: Ty) -> Self {
+    #[cfg(debug_assertions)]
+    Self::check(&ty);
+    Self(ty)
+  }
+
+  fn check(ty: &Ty) {
+    match ty {
+      Ty::ForAll(_, _) => panic!("ForAll in Tau: {:?}", ty),
+      Ty::Fun(arg_ty, res_ty) => {
+        Self::check(arg_ty);
+        Self::check(res_ty);
+      }
+      Ty::Int | Ty::TyVar(_) | Ty::MetaTyVar(_) => {}
+    }
+  }
+
+  pub(crate) fn into_inner(self) -> Ty {
+    self.0
+  }
+
+  pub(crate) fn as_ref(&self) -> &Ty {
+    &self.0
+  }
+}
 
 /// A type variable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

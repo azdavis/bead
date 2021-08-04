@@ -1,13 +1,13 @@
 //! Operations on [`Ty`]s.
 
 use crate::defs::{
-  BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Ty, TyVar,
+  BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar,
 };
 use std::collections::{HashMap, HashSet};
 
 pub(crate) fn meta_ty_vars(ac: &mut HashSet<MetaTyVar>, ty: &Ty) {
   match ty {
-    Ty::ForAll(_, ty) => meta_ty_vars(ac, ty),
+    Ty::ForAll(_, ty) => meta_ty_vars(ac, (**ty).as_ref()),
     Ty::Fun(arg_ty, res_ty) => {
       meta_ty_vars(ac, arg_ty);
       meta_ty_vars(ac, res_ty);
@@ -26,7 +26,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut HashSet<TyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound, *not* free
     Ty::ForAll(tvs, ty) => {
-      free_ty_vars(cx, ac, ty);
+      free_ty_vars(cx, ac, (**ty).as_ref());
       for &tv in tvs {
         ac.remove(&TyVar::Bound(tv));
       }
@@ -43,7 +43,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut HashSet<TyVar>, ty: &Ty) {
     // see the case in `zonk`.
     Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
       None => {}
-      Some(ty) => free_ty_vars(cx, ac, &ty),
+      Some(ty) => free_ty_vars(cx, ac, ty.as_ref()),
     },
   }
 }
@@ -53,7 +53,7 @@ fn bound_ty_vars(ac: &mut HashSet<BoundTyVar>, ty: &Ty) {
     // `tvs` are bound
     Ty::ForAll(tvs, ty) => {
       ac.extend(tvs.iter().copied());
-      bound_ty_vars(ac, ty);
+      bound_ty_vars(ac, (**ty).as_ref());
     }
     Ty::Fun(arg_ty, res_ty) => {
       bound_ty_vars(ac, arg_ty);
@@ -71,7 +71,7 @@ fn subst(map: &HashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
       for tv in tvs {
         map.remove(&tv);
       }
-      subst(&map, *ty)
+      subst(&map, ty.into_inner())
     }
     Ty::Fun(arg_ty, res_ty) => {
       let arg_ty = subst(map, *arg_ty);
@@ -100,11 +100,11 @@ pub(crate) fn instantiate(cx: &mut Cx, ty: Ty) -> Rho {
         .map(|tv| (tv, Ty::MetaTyVar(cx.new_meta_ty_var())))
         .collect();
       // no capture because MetaTyVars cannot be bound and they are all new.
-      let ty = subst(&map, *ty);
+      let ty = subst(&map, ty.into_inner());
       // NOTE: this handles nested ForAlls, but the haskell code does not.
       instantiate(cx, ty)
     }
-    _ => ty,
+    _ => Rho::new(ty),
   }
 }
 
@@ -123,16 +123,16 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
         })
         .collect();
       // no capture because skolem ty vars cannot be bound and they are all new.
-      let ty = subst(&map, *ty);
+      let ty = subst(&map, ty.into_inner());
       skolemize(cx, ac, ty)
     }
     // @rule PRFUN
     Ty::Fun(ty1, ty2) => {
       let ty2 = skolemize(cx, ac, *ty2);
-      Ty::Fun(ty1, Box::new(ty2))
+      Rho::new(Ty::Fun(ty1, Box::new(ty2.into_inner())))
     }
     // @rule PRMONO
-    _ => ty,
+    _ => Rho::new(ty),
   }
 }
 
@@ -140,7 +140,7 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
 /// them with a top-level forall.
 pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
   let mut used_bound = HashSet::new();
-  bound_ty_vars(&mut used_bound, &ty);
+  bound_ty_vars(&mut used_bound, ty.as_ref());
   let mut i = 0u32;
   let mut iter = set.iter();
   let mut new_bound = Vec::with_capacity(set.len());
@@ -152,9 +152,9 @@ pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
     }
     new_bound.push(bound_tv);
     let meta_tv = *iter.next().expect("checked len != 0");
-    cx.set(meta_tv, Ty::TyVar(TyVar::Bound(bound_tv)));
+    cx.set(meta_tv, Tau::new(Ty::TyVar(TyVar::Bound(bound_tv))));
   }
-  Ty::ForAll(new_bound, Box::new(zonk(cx, ty)))
+  Ty::ForAll(new_bound, Box::new(Rho::new(zonk(cx, ty.into_inner()))))
 }
 
 /// replaces all meta type variables with their corresponding types from the
@@ -162,8 +162,8 @@ pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
 pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
   match ty {
     Ty::ForAll(tvs, ty) => {
-      let ty = Box::new(zonk(cx, *ty));
-      Ty::ForAll(tvs, ty)
+      let ty = Box::new(zonk(cx, ty.into_inner()));
+      Ty::ForAll(tvs, Box::new(Rho::new(*ty)))
     }
     Ty::Fun(arg_ty, res_ty) => {
       let arg_ty = zonk(cx, *arg_ty);
@@ -176,9 +176,9 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
     Ty::MetaTyVar(tv) => match cx.get(tv) {
       None => Ty::MetaTyVar(tv),
       Some(ty) => {
-        let ty = ty.clone();
+        let ty = ty.clone().into_inner();
         let ty = zonk(cx, ty);
-        cx.set(tv, ty.clone());
+        cx.set(tv, Tau::new(ty.clone()));
         ty
       }
     },
@@ -198,12 +198,12 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
     (Ty::MetaTyVar(tv1), Ty::MetaTyVar(tv2)) => assert!(tv1 == tv2),
     (Ty::MetaTyVar(tv1), ty2) | (ty2, Ty::MetaTyVar(tv1)) => {
       if let Some(ty1) = cx.get(*tv1).cloned() {
-        return unify(cx, &ty1, ty2);
+        return unify(cx, ty1.as_ref(), ty2);
       }
       match ty2 {
         Ty::MetaTyVar(tv2) => match cx.get(*tv2).cloned() {
-          None => cx.set(*tv1, ty2.clone()),
-          Some(ty2) => unify(cx, &Ty::MetaTyVar(*tv1), &ty2),
+          None => cx.set(*tv1, Tau::new(ty2.clone())),
+          Some(ty2) => unify(cx, &Ty::MetaTyVar(*tv1), ty2.as_ref()),
         },
         _ => {
           let mut meta_tvs = HashSet::new();
@@ -211,7 +211,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
           if meta_tvs.contains(tv1) {
             panic!("occurs check failed")
           }
-          cx.set(*tv1, ty2.clone());
+          cx.set(*tv1, Tau::new(ty2.clone()));
         }
       }
     }
@@ -227,14 +227,16 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
 }
 
 pub(crate) fn unify_fn(cx: &mut Cx, ty: &Rho) -> (Ty, Rho) {
-  match ty {
-    Ty::Fun(arg_ty, res_ty) => ((**arg_ty).clone(), (**res_ty).clone()),
+  match ty.as_ref() {
+    Ty::Fun(arg_ty, res_ty) => {
+      ((**arg_ty).clone(), Rho::new((**res_ty).clone()))
+    }
     _ => {
       let arg_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
       let res_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
       let fn_ty = Ty::fun(arg_ty.clone(), res_ty.clone());
-      unify(cx, &fn_ty, ty);
-      (arg_ty, res_ty)
+      unify(cx, &fn_ty, ty.as_ref());
+      (arg_ty, Rho::new(res_ty))
     }
   }
 }

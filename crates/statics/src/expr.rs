@@ -46,7 +46,7 @@ fn tc_rho(cx: &mut Cx, env: &Env, exp_ty: Expected<'_>, expr: &Expr) {
         let var_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
         let env = env.clone().insert(*var, var_ty.clone());
         let body_ty = infer_rho(cx, &env, body);
-        exp_ty.set(Ty::fun(var_ty, body_ty));
+        exp_ty.set(Rho::new(Ty::fun(var_ty, body_ty.into_inner())));
       }
       // @rule ABS2
       Expected::Check(exp_ty) => {
@@ -60,7 +60,7 @@ fn tc_rho(cx: &mut Cx, env: &Env, exp_ty: Expected<'_>, expr: &Expr) {
       Expected::Infer(exp_ty) => {
         let env = env.clone().insert(*var, var_ty.clone());
         let body_ty = infer_rho(cx, &env, body);
-        exp_ty.set(Ty::fun(var_ty.clone(), body_ty));
+        exp_ty.set(Rho::new(Ty::fun(var_ty.clone(), body_ty.into_inner())));
       }
       // @rule AABS2
       Expected::Check(exp_ty) => {
@@ -75,7 +75,7 @@ fn tc_rho(cx: &mut Cx, env: &Env, exp_ty: Expected<'_>, expr: &Expr) {
       let fun_ty = infer_rho(cx, env, fun);
       let (arg_ty, res_ty) = unify_fn(cx, &fun_ty);
       check_ty(cx, env, arg, arg_ty);
-      inst_ty(cx, res_ty, exp_ty);
+      inst_ty(cx, res_ty.into_inner(), exp_ty);
     }
     // @rule LET
     Expr::Let(var, rhs, body) => {
@@ -99,7 +99,7 @@ fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
     meta_ty_vars(&mut env_tvs, ty);
   }
   let mut res_tvs = HashSet::new();
-  meta_ty_vars(&mut res_tvs, &exp_ty);
+  meta_ty_vars(&mut res_tvs, exp_ty.as_ref());
   for tv in env_tvs {
     res_tvs.remove(&tv);
   }
@@ -140,21 +140,21 @@ fn subs_check(cx: &mut Cx, ty1: Ty, ty2: Ty) {
 }
 
 fn subs_check_rho(cx: &mut Cx, ty: Ty, rho: Rho) {
-  match (ty, rho) {
+  match (ty, rho.into_inner()) {
     // @rule SPEC
     (ty @ Ty::ForAll(_, _), rho) => {
       let rho1 = instantiate(cx, ty);
-      subs_check_rho(cx, rho1, rho)
+      subs_check_rho(cx, rho1.into_inner(), Rho::new(rho))
     }
     // @rule FUN
     (rho1, Ty::Fun(arg_ty2, res_ty2)) => {
-      let (arg_ty1, res_ty1) = unify_fn(cx, &rho1);
-      subs_check_fun(cx, arg_ty1, res_ty1, *arg_ty2, *res_ty2);
+      let (arg_ty1, res_ty1) = unify_fn(cx, &Rho::new(rho1));
+      subs_check_fun(cx, arg_ty1, res_ty1, *arg_ty2, Rho::new(*res_ty2));
     }
     // this one too
     (Ty::Fun(arg_ty1, res_ty1), rho2) => {
-      let (arg_ty2, res_ty2) = unify_fn(cx, &rho2);
-      subs_check_fun(cx, *arg_ty1, *res_ty1, arg_ty2, res_ty2);
+      let (arg_ty2, res_ty2) = unify_fn(cx, &Rho::new(rho2));
+      subs_check_fun(cx, *arg_ty1, Rho::new(*res_ty1), arg_ty2, res_ty2);
     }
     // @rule MONO
     (rho1, rho2) => unify(cx, &rho1, &rho2),
@@ -169,7 +169,7 @@ fn subs_check_fun(
   res_ty2: Rho,
 ) {
   subs_check(cx, arg_ty2, arg_ty1);
-  subs_check(cx, res_ty1, res_ty2);
+  subs_check(cx, res_ty1.into_inner(), res_ty2.into_inner());
 }
 
 fn inst_ty(cx: &mut Cx, ty1: Ty, exp_ty: Expected<'_>) {
