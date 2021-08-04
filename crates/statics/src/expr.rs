@@ -112,9 +112,9 @@ fn check_sigma(cx: &mut Cx, env: &Env, expr: &Expr, sigma: Sigma) {
   let rho = skolemize(cx, &mut skol_tvs, sigma.clone());
   check_rho(cx, env, expr, rho);
   let mut env_tvs = HashSet::new();
-  free_ty_vars(&mut env_tvs, &zonk(cx, sigma));
+  free_ty_vars(cx, &mut env_tvs, &sigma);
   for sigma in env.values() {
-    free_ty_vars(&mut env_tvs, &zonk(cx, sigma.clone()));
+    free_ty_vars(cx, &mut env_tvs, sigma);
   }
   for skol_tv in skol_tvs {
     if env_tvs.contains(&TyVar::Skolem(skol_tv)) {
@@ -129,8 +129,8 @@ fn subs_check(cx: &mut Cx, sigma1: Sigma, sigma2: Sigma) {
   let rho2 = skolemize(cx, &mut skol_tvs, sigma2.clone());
   subs_check_rho(cx, sigma1.clone(), rho2);
   let mut enc_tvs = HashSet::new();
-  free_ty_vars(&mut enc_tvs, &zonk(cx, sigma1));
-  free_ty_vars(&mut enc_tvs, &zonk(cx, sigma2));
+  free_ty_vars(cx, &mut enc_tvs, &sigma1);
+  free_ty_vars(cx, &mut enc_tvs, &sigma2);
   if skol_tvs
     .into_iter()
     .any(|tv| enc_tvs.contains(&TyVar::Skolem(tv)))

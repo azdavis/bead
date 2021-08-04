@@ -20,24 +20,31 @@ pub(crate) fn meta_ty_vars(ac: &mut HashSet<MetaTyVar>, ty: &Ty) {
   }
 }
 
-pub(crate) fn free_ty_vars(ac: &mut HashSet<TyVar>, ty: &Ty) {
+/// this does zonking "on the fly", so it is unnecessary to call [`zonk`] on a
+/// type before passing it into this.
+pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut HashSet<TyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound, *not* free
     Ty::ForAll(tvs, ty) => {
-      free_ty_vars(ac, ty);
+      free_ty_vars(cx, ac, ty);
       for &tv in tvs {
         ac.remove(&TyVar::Bound(tv));
       }
     }
     Ty::Fun(arg_ty, res_ty) => {
-      free_ty_vars(ac, arg_ty);
-      free_ty_vars(ac, res_ty);
+      free_ty_vars(cx, ac, arg_ty);
+      free_ty_vars(cx, ac, res_ty);
     }
+    Ty::Int => {}
     // might be free, will be removed if bound
     Ty::TyVar(tv) => {
       ac.insert(*tv);
     }
-    Ty::Int | Ty::MetaTyVar(_) => {}
+    // see the case in `zonk`.
+    Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
+      None => {}
+      Some(ty) => free_ty_vars(cx, ac, &ty),
+    },
   }
 }
 
