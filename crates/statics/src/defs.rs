@@ -54,12 +54,13 @@ impl Ty {
   }
 }
 
-/// No top-level [`Ty::ForAll`].
+/// A [`Ty`] that is not [`Ty::ForAll`] at the top level, but may contain them
+/// nested inside.
 #[derive(Debug, Clone)]
 pub struct Rho(Ty);
 
 impl Rho {
-  /// Returns a new [`Rho`].
+  /// Returns a new [`Rho`]. Panics in debug mode if it is a [`Ty::ForAll`].
   pub fn new(ty: Ty) -> Self {
     #[cfg(debug_assertions)]
     Self::check(&ty);
@@ -82,7 +83,7 @@ impl Rho {
   }
 }
 
-/// No [`Ty::ForAll`] at all, i.e. a monotype.
+/// A [`Ty`] with no [`Ty::ForAll`] at all, i.e. a monotype.
 #[derive(Debug, Clone)]
 pub(crate) struct Tau(Ty);
 
@@ -122,8 +123,8 @@ pub enum TyVar {
   Skolem(SkolemTyVar),
 }
 
-/// Bound by a [`Ty::ForAll`]. This is the only kind of type variable writeable
-/// in user code.
+/// A type variable bound by a [`Ty::ForAll`]. This is the only kind of type
+/// variable writeable in user code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BoundTyVar(Name);
 
@@ -133,12 +134,13 @@ impl BoundTyVar {
   }
 }
 
-/// Not bound a [`Ty::ForAll`]. A constant but unknown type.
+/// A skolem type variable. Not bound a [`Ty::ForAll`]. A constant but unknown
+/// type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SkolemTyVar(Uniq);
 
-/// Not bound a [`Ty::ForAll`]. A placeholder for a monotype, which is to be
-/// determined by type inference.
+/// A meta type variable. Not bound a [`Ty::ForAll`]. A placeholder for a
+/// monotype, which is to be determined by type inference.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MetaTyVar(Uniq);
 
