@@ -1,6 +1,6 @@
 //! Typechecking [`Expr`]s.
 
-use crate::defs::{Cx, Env, Expr, Rho, RhoRef, Sigma, Ty, TyVar};
+use crate::defs::{Cx, Env, Expr, Rho, RhoRef, Ty, TyVar};
 use crate::ty::{
   free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
   unify_fn, zonk,
@@ -8,8 +8,8 @@ use crate::ty::{
 use std::collections::HashSet;
 
 /// Infer a type for `expr` under `env`.
-pub fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
-  let ty = infer_sigma(cx, env, expr);
+pub fn infer_ty_zonk(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
+  let ty = infer_ty(cx, env, expr);
   zonk(cx, ty)
 }
 
@@ -34,11 +34,11 @@ fn check_rho(cx: &mut Cx, env: &Env, expr: &Expr, rho: Rho) {
 fn tc_rho(cx: &mut Cx, env: &Env, exp_ty: Expected<'_>, expr: &Expr) {
   match expr {
     // @rule INT
-    Expr::Int(_) => inst_sigma(cx, Ty::Int, exp_ty),
+    Expr::Int(_) => inst_ty(cx, Ty::Int, exp_ty),
     // @rule VAR
     Expr::Var(v) => {
       let ty = env.get(v).unwrap();
-      inst_sigma(cx, ty.clone(), exp_ty)
+      inst_ty(cx, ty.clone(), exp_ty)
     }
     Expr::Lam(var, body) => match exp_ty {
       // @rule ABS1
@@ -74,29 +74,29 @@ fn tc_rho(cx: &mut Cx, env: &Env, exp_ty: Expected<'_>, expr: &Expr) {
     Expr::App(fun, arg) => {
       let fun_ty = infer_rho(cx, env, fun);
       let (arg_ty, res_ty) = unify_fn(cx, &fun_ty);
-      check_sigma(cx, env, arg, arg_ty);
-      inst_sigma(cx, res_ty, exp_ty);
+      check_ty(cx, env, arg, arg_ty);
+      inst_ty(cx, res_ty, exp_ty);
     }
     // @rule LET
     Expr::Let(var, rhs, body) => {
-      let var_ty = infer_sigma(cx, env, rhs);
+      let var_ty = infer_ty(cx, env, rhs);
       let env = env.clone().insert(*var, var_ty);
       tc_rho(cx, &env, exp_ty, body);
     }
     // @rule ANNOT
     Expr::Ann(body, ann_ty) => {
-      check_sigma(cx, env, body, ann_ty.clone());
-      inst_sigma(cx, ann_ty.clone(), exp_ty);
+      check_ty(cx, env, body, ann_ty.clone());
+      inst_ty(cx, ann_ty.clone(), exp_ty);
     }
   }
 }
 
-fn infer_sigma(cx: &mut Cx, env: &Env, expr: &Expr) -> Sigma {
+fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
   // @rule GEN1
   let exp_ty = infer_rho(cx, env, expr);
   let mut env_tvs = HashSet::new();
-  for sigma in env.values() {
-    meta_ty_vars(&mut env_tvs, sigma);
+  for ty in env.values() {
+    meta_ty_vars(&mut env_tvs, ty);
   }
   let mut res_tvs = HashSet::new();
   meta_ty_vars(&mut res_tvs, &exp_ty);
@@ -106,15 +106,15 @@ fn infer_sigma(cx: &mut Cx, env: &Env, expr: &Expr) -> Sigma {
   quantify(cx, &res_tvs, exp_ty)
 }
 
-fn check_sigma(cx: &mut Cx, env: &Env, expr: &Expr, sigma: Sigma) {
+fn check_ty(cx: &mut Cx, env: &Env, expr: &Expr, ty: Ty) {
   // @rule GEN2
   let mut skol_tvs = Vec::new();
-  let rho = skolemize(cx, &mut skol_tvs, sigma.clone());
+  let rho = skolemize(cx, &mut skol_tvs, ty.clone());
   check_rho(cx, env, expr, rho);
   let mut env_tvs = HashSet::new();
-  free_ty_vars(cx, &mut env_tvs, &sigma);
-  for sigma in env.values() {
-    free_ty_vars(cx, &mut env_tvs, sigma);
+  free_ty_vars(cx, &mut env_tvs, &ty);
+  for ty in env.values() {
+    free_ty_vars(cx, &mut env_tvs, ty);
   }
   for skol_tv in skol_tvs {
     if env_tvs.contains(&TyVar::Skolem(skol_tv)) {
@@ -123,27 +123,27 @@ fn check_sigma(cx: &mut Cx, env: &Env, expr: &Expr, sigma: Sigma) {
   }
 }
 
-fn subs_check(cx: &mut Cx, sigma1: Sigma, sigma2: Sigma) {
+fn subs_check(cx: &mut Cx, ty1: Ty, ty2: Ty) {
   // @rule DEEP-SKOL
   let mut skol_tvs = Vec::new();
-  let rho2 = skolemize(cx, &mut skol_tvs, sigma2.clone());
-  subs_check_rho(cx, sigma1.clone(), rho2);
+  let rho2 = skolemize(cx, &mut skol_tvs, ty2.clone());
+  subs_check_rho(cx, ty1.clone(), rho2);
   let mut enc_tvs = HashSet::new();
-  free_ty_vars(cx, &mut enc_tvs, &sigma1);
-  free_ty_vars(cx, &mut enc_tvs, &sigma2);
+  free_ty_vars(cx, &mut enc_tvs, &ty1);
+  free_ty_vars(cx, &mut enc_tvs, &ty2);
   if skol_tvs
     .into_iter()
     .any(|tv| enc_tvs.contains(&TyVar::Skolem(tv)))
   {
-    panic!("sigma1 not as polymorphic as sigma2")
+    panic!("ty1 not as polymorphic as ty2")
   }
 }
 
-fn subs_check_rho(cx: &mut Cx, sigma: Sigma, rho: Rho) {
-  match (sigma, rho) {
+fn subs_check_rho(cx: &mut Cx, ty: Ty, rho: Rho) {
+  match (ty, rho) {
     // @rule SPEC
-    (sigma @ Ty::ForAll(_, _), rho) => {
-      let rho1 = instantiate(cx, sigma);
+    (ty @ Ty::ForAll(_, _), rho) => {
+      let rho1 = instantiate(cx, ty);
       subs_check_rho(cx, rho1, rho)
     }
     // @rule FUN
@@ -163,16 +163,16 @@ fn subs_check_rho(cx: &mut Cx, sigma: Sigma, rho: Rho) {
 
 fn subs_check_fun(
   cx: &mut Cx,
-  arg_ty1: Sigma,
+  arg_ty1: Ty,
   res_ty1: Rho,
-  arg_ty2: Sigma,
+  arg_ty2: Ty,
   res_ty2: Rho,
 ) {
   subs_check(cx, arg_ty2, arg_ty1);
   subs_check(cx, res_ty1, res_ty2);
 }
 
-fn inst_sigma(cx: &mut Cx, ty1: Sigma, exp_ty: Expected<'_>) {
+fn inst_ty(cx: &mut Cx, ty1: Ty, exp_ty: Expected<'_>) {
   match exp_ty {
     // @rule INST1
     Expected::Infer(r) => {

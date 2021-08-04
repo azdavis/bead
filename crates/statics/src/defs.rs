@@ -22,19 +22,16 @@ pub enum Expr {
   Var(Name),
   /// Lambda, a function literal.
   Lam(Name, Box<Expr>),
-  /// Annotated lambda. The variable type is given by the [`Sigma`].
-  ALam(Name, Sigma, Box<Expr>),
+  /// Annotated lambda. The variable type is given by the [`Ty`].
+  ALam(Name, Ty, Box<Expr>),
   /// Function application.
   App(Box<Expr>, Box<Expr>),
   /// Variable binding. The variable's contents are the first [`Expr`] and it
   /// is is available in the scope of the latter [`Expr`].
   Let(Name, Box<Expr>, Box<Expr>),
   /// Annotation.
-  Ann(Box<Expr>, Sigma),
+  Ann(Box<Expr>, Ty),
 }
-
-/// All types.
-pub type Sigma = Ty;
 
 /// No top-level [`Ty::ForAll`].
 pub type Rho = Ty;
@@ -42,7 +39,7 @@ pub type Rho = Ty;
 /// No [`Ty::ForAll`] at all, i.e. a monotype.
 pub type Tau = Ty;
 
-/// A type.
+/// A type. "Sigma" in the MSR paper.
 #[derive(Debug, Clone)]
 pub enum Ty {
   /// Forall types. The bound type variables may appear in the [`Rho`].
@@ -130,19 +127,19 @@ impl Cx {
 
 /// Variable names in scope and their types.
 #[derive(Debug, Default, Clone)]
-pub struct Env(HashMap<Name, Sigma>);
+pub struct Env(HashMap<Name, Ty>);
 
 impl Env {
-  pub(crate) fn insert(mut self, name: Name, ty: Sigma) -> Self {
+  pub(crate) fn insert(mut self, name: Name, ty: Ty) -> Self {
     self.0.insert(name, ty);
     self
   }
 
-  pub(crate) fn get(&self, name: &Name) -> Option<&Sigma> {
+  pub(crate) fn get(&self, name: &Name) -> Option<&Ty> {
     self.0.get(name)
   }
 
-  pub(crate) fn values(&self) -> impl Iterator<Item = &Sigma> {
+  pub(crate) fn values(&self) -> impl Iterator<Item = &Ty> {
     self.0.values()
   }
 }

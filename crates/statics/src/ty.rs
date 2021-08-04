@@ -1,7 +1,7 @@
 //! Operations on [`Ty`]s.
 
 use crate::defs::{
-  BoundTyVar, Cx, MetaTyVar, Name, Rho, Sigma, SkolemTyVar, Ty, TyVar,
+  BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Ty, TyVar,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -92,7 +92,7 @@ fn subst(map: &HashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
 
 /// removes top-level forall, and replaces all type variables previously bound
 /// by those forall with new meta type variables.
-pub(crate) fn instantiate(cx: &mut Cx, ty: Sigma) -> Rho {
+pub(crate) fn instantiate(cx: &mut Cx, ty: Ty) -> Rho {
   match ty {
     Ty::ForAll(tvs, ty) => {
       let map: HashMap<_, _> = tvs
@@ -110,11 +110,7 @@ pub(crate) fn instantiate(cx: &mut Cx, ty: Sigma) -> Rho {
 
 /// removes forall not directly to the left of arrows, and replaces type
 /// variables previously bound by those forall with new skolem type variables.
-pub(crate) fn skolemize(
-  cx: &mut Cx,
-  ac: &mut Vec<SkolemTyVar>,
-  ty: Sigma,
-) -> Rho {
+pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
   match ty {
     // @rule PRPOLY
     Ty::ForAll(tvs, ty) => {
@@ -142,11 +138,7 @@ pub(crate) fn skolemize(
 
 /// replaces all meta type variables with new bound type variables, and binds
 /// them with a top-level forall.
-pub(crate) fn quantify(
-  cx: &mut Cx,
-  set: &HashSet<MetaTyVar>,
-  ty: Rho,
-) -> Sigma {
+pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
   let mut used_bound = HashSet::new();
   bound_ty_vars(&mut used_bound, &ty);
   let mut i = 0u32;
@@ -234,7 +226,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
   }
 }
 
-pub(crate) fn unify_fn(cx: &mut Cx, ty: &Rho) -> (Sigma, Rho) {
+pub(crate) fn unify_fn(cx: &mut Cx, ty: &Rho) -> (Ty, Rho) {
   match ty {
     Ty::Fun(arg_ty, res_ty) => ((**arg_ty).clone(), (**res_ty).clone()),
     _ => {
