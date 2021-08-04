@@ -8,4 +8,7 @@
 #![deny(missing_docs)]
 #![deny(rust_2018_idioms)]
 
+mod defs;
 mod uniq;
+
+pub use defs::*;
