@@ -77,8 +77,10 @@ impl Rho {
   pub fn into_inner(self) -> Ty {
     self.0
   }
+}
 
-  pub(crate) fn as_ref(&self) -> &Ty {
+impl AsRef<Ty> for Rho {
+  fn as_ref(&self) -> &Ty {
     &self.0
   }
 }
@@ -108,8 +110,10 @@ impl Tau {
   pub(crate) fn into_inner(self) -> Ty {
     self.0
   }
+}
 
-  pub(crate) fn as_ref(&self) -> &Ty {
+impl AsRef<Ty> for Tau {
+  fn as_ref(&self) -> &Ty {
     &self.0
   }
 }
