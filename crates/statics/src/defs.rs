@@ -33,12 +33,6 @@ pub enum Expr {
   Ann(Box<Expr>, Ty),
 }
 
-/// No top-level [`Ty::ForAll`].
-pub type Rho = Ty;
-
-/// No [`Ty::ForAll`] at all, i.e. a monotype.
-pub type Tau = Ty;
-
 /// A type. "Sigma" in the MSR paper.
 #[derive(Debug, Clone)]
 pub enum Ty {
@@ -59,6 +53,12 @@ impl Ty {
     Self::Fun(Box::new(ty1), Box::new(ty2))
   }
 }
+
+/// No top-level [`Ty::ForAll`].
+pub type Rho = Ty;
+
+/// No [`Ty::ForAll`] at all, i.e. a monotype.
+pub type Tau = Ty;
 
 /// A type variable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
