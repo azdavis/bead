@@ -49,8 +49,8 @@ pub enum Ty {
 }
 
 impl Ty {
-  pub(crate) fn fun(ty1: Self, ty2: Self) -> Self {
-    Self::Fun(Box::new(ty1), Box::new(ty2))
+  pub(crate) fn fun(arg: Self, res: Self) -> Self {
+    Self::Fun(Box::new(arg), Box::new(res))
   }
 }
 
