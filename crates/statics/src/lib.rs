@@ -9,7 +9,9 @@
 #![deny(rust_2018_idioms)]
 
 mod defs;
+mod expr;
 mod ty;
 mod uniq;
 
 pub use defs::*;
+pub use expr::infer_ty;
