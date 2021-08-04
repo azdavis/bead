@@ -1,10 +1,10 @@
 //! Typechecking [`Expr`]s.
 
-use crate::defs::{Cx, Env, Expr, Rho, RhoRef, Ty, TyVar};
 use crate::ty::{
   free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
   unify_fn, zonk,
 };
+use defs::{Cx, Env, Expr, Rho, RhoRef, Ty, TyVar};
 use std::collections::HashSet;
 
 /// Infer a type for `expr` under `env`.

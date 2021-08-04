@@ -1,8 +1,6 @@
 //! Operations on [`Ty`]s.
 
-use crate::defs::{
-  BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar,
-};
+use defs::{BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) fn meta_ty_vars(ac: &mut HashSet<MetaTyVar>, ty: &Ty) {

@@ -8,9 +8,7 @@
 #![deny(missing_docs)]
 #![deny(rust_2018_idioms)]
 
-mod defs;
 mod expr;
 mod ty;
 
-pub use defs::*;
 pub use expr::infer_ty_zonk as infer_ty;
