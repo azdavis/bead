@@ -8,7 +8,8 @@ use std::collections::HashMap;
 pub struct Name(u32);
 
 impl Name {
-  pub(crate) fn new(n: u32) -> Self {
+  /// Returns a new [`Name`].
+  pub fn new(n: u32) -> Self {
     Self(n)
   }
 }
@@ -49,7 +50,8 @@ pub enum Ty {
 }
 
 impl Ty {
-  pub(crate) fn fun(arg: Self, res: Self) -> Self {
+  /// Returns a function type from `arg` to `res`.
+  pub fn fun(arg: Self, res: Self) -> Self {
     Self::Fun(Box::new(arg), Box::new(res))
   }
 }
@@ -87,10 +89,11 @@ impl AsRef<Ty> for Rho {
 
 /// A [`Ty`] with no [`Ty::ForAll`] at all, i.e. a monotype.
 #[derive(Debug, Clone)]
-pub(crate) struct Tau(Ty);
+pub struct Tau(Ty);
 
 impl Tau {
-  pub(crate) fn new(ty: Ty) -> Self {
+  /// Returns a new [`Tau`]. Panics in debug mode if it contains [`Ty::ForAll`].
+  pub fn new(ty: Ty) -> Self {
     #[cfg(debug_assertions)]
     Self::check(&ty);
     Self(ty)
@@ -107,7 +110,8 @@ impl Tau {
     }
   }
 
-  pub(crate) fn into_inner(self) -> Ty {
+  /// Unwraps the [`Ty`].
+  pub fn into_inner(self) -> Ty {
     self.0
   }
 }
@@ -133,7 +137,8 @@ pub enum TyVar {
 pub struct BoundTyVar(Name);
 
 impl BoundTyVar {
-  pub(crate) fn new(name: Name) -> Self {
+  /// Returns a new [`BoundTyVar`].
+  pub fn new(name: Name) -> Self {
     Self(name)
   }
 }
@@ -157,11 +162,13 @@ pub struct Cx {
 }
 
 impl Cx {
-  pub(crate) fn new_meta_ty_var(&mut self) -> MetaTyVar {
+  /// Returns a new [`MetaTyVar`] distinct from any other returned thus far.
+  pub fn new_meta_ty_var(&mut self) -> MetaTyVar {
     MetaTyVar(self.uniq_gen.gen())
   }
 
-  pub(crate) fn new_skolem_ty_var(&mut self, tv: TyVar) -> SkolemTyVar {
+  /// Returns a new [`SkolemTyVar`] distinct from any other returned thus far.
+  pub fn new_skolem_ty_var(&mut self, tv: TyVar) -> SkolemTyVar {
     let ret = SkolemTyVar(self.uniq_gen.gen());
     let name = self.ty_var_name(tv);
     assert!(self.skolem_names.insert(ret, name).is_none());
@@ -175,11 +182,14 @@ impl Cx {
     }
   }
 
-  pub(crate) fn set(&mut self, tv: MetaTyVar, ty: Tau) {
+  /// Sets `tv` to refer to `ty`. Panics if `tv` already refers to some other
+  /// [`Tau`].
+  pub fn set(&mut self, tv: MetaTyVar, ty: Tau) {
     assert!(self.meta_tys.insert(tv, ty).is_none());
   }
 
-  pub(crate) fn get(&self, tv: MetaTyVar) -> Option<&Tau> {
+  /// Returns the [`Tau`] that `tv` refers to, if any.
+  pub fn get(&self, tv: MetaTyVar) -> Option<&Tau> {
     self.meta_tys.get(&tv)
   }
 }
@@ -189,31 +199,36 @@ impl Cx {
 pub struct Env(HashMap<Name, Ty>);
 
 impl Env {
-  pub(crate) fn insert(mut self, name: Name, ty: Ty) -> Self {
+  /// Insert `name` as having `ty`.
+  pub fn insert(mut self, name: Name, ty: Ty) -> Self {
     self.0.insert(name, ty);
     self
   }
 
-  pub(crate) fn get(&self, name: &Name) -> Option<&Ty> {
+  /// Returns the [`Ty`] that `name` refers to, if any.
+  pub fn get(&self, name: &Name) -> Option<&Ty> {
     self.0.get(name)
   }
 
-  pub(crate) fn values(&self) -> impl Iterator<Item = &Ty> {
+  /// Returns an iterator over the values.
+  pub fn values(&self) -> impl Iterator<Item = &Ty> {
     self.0.values()
   }
 }
 
 /// A slot for a [`Rho`] that starts empty and may be set exactly once.
 #[derive(Debug, Default)]
-pub(crate) struct RhoRef(Option<Rho>);
+pub struct RhoRef(Option<Rho>);
 
 impl RhoRef {
-  pub(crate) fn set(&mut self, rho: Rho) {
+  /// Sets the [`RhoRef`] if its unset. Panics if it is set.
+  pub fn set(&mut self, rho: Rho) {
     assert!(self.0.is_none());
     self.0 = Some(rho);
   }
 
-  pub(crate) fn unwrap(self) -> Rho {
+  /// Unwraps the [`Rho`] inside, if any. Panics if there is none.
+  pub fn unwrap(self) -> Rho {
     self.0.unwrap()
   }
 }
