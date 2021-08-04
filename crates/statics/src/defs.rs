@@ -146,3 +146,18 @@ impl Env {
     self.0.values()
   }
 }
+
+/// A slot for a [`Rho`] that starts empty and may be set exactly once.
+#[derive(Debug, Default)]
+pub(crate) struct RhoRef(Option<Rho>);
+
+impl RhoRef {
+  pub(crate) fn set(&mut self, rho: Rho) {
+    assert!(self.0.is_none());
+    self.0 = Some(rho);
+  }
+
+  pub(crate) fn unwrap(self) -> Rho {
+    self.0.unwrap()
+  }
+}

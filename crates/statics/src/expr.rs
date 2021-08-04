@@ -1,6 +1,6 @@
 //! Typechecking [`Expr`]s.
 
-use crate::defs::{Cx, Env, Expr, Rho, Sigma, Ty, TyVar};
+use crate::defs::{Cx, Env, Expr, Rho, RhoRef, Sigma, Ty, TyVar};
 use crate::ty::{
   free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
   unify_fn, zonk,
@@ -11,21 +11,6 @@ use std::collections::HashSet;
 pub fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
   let ty = infer_sigma(cx, env, expr);
   zonk(cx, ty)
-}
-
-/// A slot for a [`Rho`] that starts empty and may be set exactly once.
-#[derive(Debug, Default)]
-struct RhoRef(Option<Rho>);
-
-impl RhoRef {
-  fn set(&mut self, rho: Rho) {
-    assert!(self.0.is_none());
-    self.0 = Some(rho);
-  }
-
-  fn unwrap(self) -> Rho {
-    self.0.unwrap()
-  }
 }
 
 /// The direction of typechecking.
