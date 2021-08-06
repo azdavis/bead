@@ -59,6 +59,17 @@ impl Ty {
   pub fn fun(arg: Self, res: Self) -> Self {
     Self::Fun(Box::new(arg), Box::new(res))
   }
+
+  /// Returns a forall type, unless `tvs` is empty, in which case this returns
+  /// the [`Ty`] inside `rho`. Prefer this over directly constructing
+  /// [`Ty::ForAll`].
+  pub fn for_all(tvs: Vec<BoundTyVar>, rho: Rho) -> Self {
+    if tvs.is_empty() {
+      rho.into_inner()
+    } else {
+      Self::ForAll(tvs, Box::new(rho))
+    }
+  }
 }
 
 /// A [`Ty`] that is not [`Ty::ForAll`] at the top level, but may contain them

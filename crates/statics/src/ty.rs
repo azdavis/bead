@@ -152,7 +152,7 @@ pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
     let meta_tv = *iter.next().expect("checked len != 0");
     cx.set(meta_tv, Tau::new(Ty::TyVar(TyVar::Bound(bound_tv))));
   }
-  Ty::ForAll(new_bound, Box::new(Rho::new(zonk(cx, ty.into_inner()))))
+  Ty::for_all(new_bound, Rho::new(zonk(cx, ty.into_inner())))
 }
 
 /// replaces all meta type variables with their corresponding types from the
@@ -161,7 +161,7 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
   match ty {
     Ty::ForAll(tvs, ty) => {
       let ty = Box::new(zonk(cx, ty.into_inner()));
-      Ty::ForAll(tvs, Box::new(Rho::new(*ty)))
+      Ty::for_all(tvs, Rho::new(*ty))
     }
     Ty::Fun(arg_ty, res_ty) => {
       let arg_ty = zonk(cx, *arg_ty);
