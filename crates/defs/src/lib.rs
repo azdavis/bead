@@ -43,8 +43,12 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum Ty {
   /// Forall types. The bound type variables may appear in the [`Rho`].
+  ///
+  /// Prefer using [`Ty::for_all`] to construct these.
   ForAll(Vec<BoundTyVar>, Box<Rho>),
   /// Functions, from arguments to results.
+  ///
+  /// Prefer using [`Ty::fun`] to construct these.
   Fun(Box<Ty>, Box<Ty>),
   /// Integer.
   Int,
@@ -61,8 +65,7 @@ impl Ty {
   }
 
   /// Returns a forall type, unless `tvs` is empty, in which case this returns
-  /// the [`Ty`] inside `rho`. Prefer this over directly constructing
-  /// [`Ty::ForAll`].
+  /// the [`Ty`] inside `rho`.
   pub fn for_all(tvs: Vec<BoundTyVar>, rho: Rho) -> Self {
     if tvs.is_empty() {
       rho.into_inner()
