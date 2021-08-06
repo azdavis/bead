@@ -207,7 +207,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
     }
     (Ty::TyVar(tv1), Ty::TyVar(tv2)) => {
       if tv1 != tv2 {
-        panic!("cannot unify")
+        panic!("cannot unify {:?} {:?}", tv1, tv2)
       }
     }
     (Ty::MetaTyVar(tv1), ty2) | (ty2, Ty::MetaTyVar(tv1)) => {
@@ -240,7 +240,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
       unify(cx, res_ty1, res_ty2);
     }
     (Ty::Int, _) | (_, Ty::Int) | (Ty::Fun(..), _) | (_, Ty::Fun(..)) => {
-      panic!("cannot unify")
+      panic!("cannot unify {:?} {:?}", ty1, ty2)
     }
   }
 }
