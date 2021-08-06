@@ -17,6 +17,16 @@ pub struct UniqGen(u32);
 impl UniqGen {
   /// Returns a [`Uniq`] not equal to any other [`Uniq`] returned thus far from
   /// this [`UniqGen`].
+  ///
+  /// # Example
+  ///
+  /// ```
+  /// # use uniq::UniqGen;
+  /// let mut uniq_gen = UniqGen::default();
+  /// let u1 = uniq_gen.gen();
+  /// let u2 = uniq_gen.gen();
+  /// assert_ne!(u1, u2);
+  /// ```
   pub fn gen(&mut self) -> Uniq {
     let ret = Uniq(self.0);
     // assuming overflow won't happen.
