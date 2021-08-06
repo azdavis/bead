@@ -1,0 +1,33 @@
+Root = Expr*
+
+Expr =
+  ParenExpr
+| IntExpr
+| NameExpr
+| LamExpr
+| ALamExpr
+| AppExpr
+| LetExpr
+| AnnExpr
+
+ParenExpr = '(' Expr ')'
+IntExpr = 'IntLit'
+NameExpr = 'Name'
+LamExpr = 'fn' 'Name' '.' Expr
+ALamExpr = 'fn' 'Name' ':' Ty '.' Expr
+AppExpr = lhs:Expr rhs:Expr
+LetExpr = 'let' 'Name' '=' var_def:Expr 'in' body:Expr
+AnnExpr = Expr ':' Ty
+
+Ty =
+  ParenTy
+| IntTy
+| NameTy
+| ForAllTy
+| FnTy
+
+ParenTy = '(' Ty ')'
+IntTy = 'Int'
+NameTy = 'Name'
+ForAllTy = 'forall' 'Name'* '.' Ty
+FnTy = lhs:Ty '->' rhs:Ty

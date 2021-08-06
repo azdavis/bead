@@ -1,0 +1,14 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+doctest = false
+
+[dependencies]
+defs = { path = "../defs" }
+lex = { path = "../lex" }
+lower = { path = "../lower" }
+parse = { path = "../parse" }
+statics = { path = "../statics" }
