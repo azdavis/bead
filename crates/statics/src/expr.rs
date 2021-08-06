@@ -14,6 +14,7 @@ pub fn infer_ty_zonk(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
 }
 
 /// The direction of typechecking.
+#[derive(Debug)]
 enum Expected<'a> {
   /// Extract a type *up* from an expression and store it in the [`RhoRef`].
   Infer(&'a mut RhoRef),
