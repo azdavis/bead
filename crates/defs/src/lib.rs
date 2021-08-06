@@ -207,6 +207,12 @@ impl Cx {
     assert!(self.meta_tys.insert(tv, ty).is_none());
   }
 
+  /// Sets `tv` to refer to `ty`. Panics if `tv` did *not* already refer to some
+  /// other [`Tau`].
+  pub fn reset(&mut self, tv: MetaTyVar, ty: Tau) {
+    assert!(self.meta_tys.insert(tv, ty).is_some());
+  }
+
   /// Returns the [`Tau`] that `tv` refers to, if any.
   pub fn get(&self, tv: MetaTyVar) -> Option<&Tau> {
     self.meta_tys.get(&tv)

@@ -176,7 +176,7 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
       Some(ty) => {
         let ty = ty.clone().into_inner();
         let ty = zonk(cx, ty);
-        cx.set(tv, Tau::new(ty.clone()));
+        cx.reset(tv, Tau::new(ty.clone()));
         ty
       }
     },
