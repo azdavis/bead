@@ -97,10 +97,10 @@ fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
   let exp_ty = infer_rho(cx, env, expr);
   let mut env_tvs = HashSet::new();
   for ty in env.values() {
-    meta_ty_vars(&mut env_tvs, ty);
+    meta_ty_vars(cx, &mut env_tvs, ty);
   }
   let mut res_tvs = HashSet::new();
-  meta_ty_vars(&mut res_tvs, exp_ty.as_ref());
+  meta_ty_vars(cx, &mut res_tvs, exp_ty.as_ref());
   for tv in env_tvs {
     res_tvs.remove(&tv);
   }

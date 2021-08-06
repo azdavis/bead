@@ -4,17 +4,26 @@ use defs::{BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar};
 use std::collections::{HashMap, HashSet};
 use uniq::UniqGen;
 
-pub(crate) fn meta_ty_vars(ac: &mut HashSet<MetaTyVar>, ty: &Ty) {
+/// this does zonking "on the fly", so it is unnecessary to call [`zonk`] on a
+/// type before passing it into this.
+///
+/// because zonking replaces bound meta type variables with the types they have
+/// been bound to, this has the effect of only adding unbound meta type
+/// variables to `ac`.
+pub(crate) fn meta_ty_vars(cx: &mut Cx, ac: &mut HashSet<MetaTyVar>, ty: &Ty) {
   match ty {
-    Ty::ForAll(_, ty) => meta_ty_vars(ac, (**ty).as_ref()),
+    Ty::ForAll(_, ty) => meta_ty_vars(cx, ac, (**ty).as_ref()),
     Ty::Fun(arg_ty, res_ty) => {
-      meta_ty_vars(ac, arg_ty);
-      meta_ty_vars(ac, res_ty);
+      meta_ty_vars(cx, ac, arg_ty);
+      meta_ty_vars(cx, ac, res_ty);
     }
-    // the only interesting case
-    Ty::MetaTyVar(tv) => {
-      ac.insert(*tv);
-    }
+    // the only interesting case. see the case in `zonk`.
+    Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
+      None => {
+        ac.insert(*tv);
+      }
+      Some(ty) => meta_ty_vars(cx, ac, ty.as_ref()),
+    },
     Ty::Int | Ty::TyVar(_) => {}
   }
 }
@@ -213,7 +222,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
         },
         _ => {
           let mut meta_tvs = HashSet::new();
-          meta_ty_vars(&mut meta_tvs, ty2);
+          meta_ty_vars(cx, &mut meta_tvs, ty2);
           if meta_tvs.contains(tv1) {
             panic!("occurs check failed")
           }
