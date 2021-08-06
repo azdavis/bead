@@ -2,6 +2,7 @@
 
 use defs::{BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar};
 use std::collections::{HashMap, HashSet};
+use uniq::UniqGen;
 
 pub(crate) fn meta_ty_vars(ac: &mut HashSet<MetaTyVar>, ty: &Ty) {
   match ty {
@@ -139,12 +140,11 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
 pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
   let mut used_bound = HashSet::new();
   bound_ty_vars(&mut used_bound, ty.as_ref());
-  let mut i = 0u32;
+  let mut uniq_gen = UniqGen::default();
   let mut iter = set.iter();
   let mut new_bound = Vec::with_capacity(set.len());
   while iter.len() != 0 {
-    let bound_tv = BoundTyVar::new(Name::new(i));
-    i += 1;
+    let bound_tv = BoundTyVar::new(Name::new(uniq_gen.gen()));
     if used_bound.contains(&bound_tv) {
       continue;
     }

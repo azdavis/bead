@@ -10,12 +10,12 @@ use uniq::{Uniq, UniqGen};
 
 /// A name in code, aka a variable, an identifier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Name(u32);
+pub struct Name(Uniq);
 
 impl Name {
   /// Returns a new [`Name`].
-  pub fn new(n: u32) -> Self {
-    Self(n)
+  pub fn new(u: Uniq) -> Self {
+    Self(u)
   }
 }
 

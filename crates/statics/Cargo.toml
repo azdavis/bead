@@ -5,3 +5,4 @@ edition = "2018"
 
 [dependencies]
 defs = { path = "../defs" }
+uniq = { path = "../uniq" }
