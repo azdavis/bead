@@ -173,8 +173,8 @@ pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
 pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
   match ty {
     Ty::ForAll(tvs, ty) => {
-      let ty = Box::new(zonk(cx, ty.into_inner()));
-      Ty::for_all(tvs, Rho::new(*ty))
+      let ty = zonk(cx, ty.into_inner());
+      Ty::for_all(tvs, Rho::new(ty))
     }
     Ty::Fun(arg_ty, res_ty) => {
       let arg_ty = zonk(cx, *arg_ty);
