@@ -3,7 +3,7 @@ use syntax_gen::{gen, TokenKind};
 
 fn main() -> std::io::Result<()> {
   gen(
-    "Bidir",
+    "Bead",
     &["Invalid", "Whitespace", "LineComment"],
     include_str!("syntax.ungram").parse().unwrap(),
     |tok| match tok {
