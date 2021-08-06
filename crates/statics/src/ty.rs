@@ -56,6 +56,10 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut HashSet<TyVar>, ty: &Ty) {
   }
 }
 
+/// this does _not_ zonk, nor does it need to. this is because [`MetaTyVar`]s
+/// can only be bound to monotypes, which by definition contain no
+/// [`Ty::ForAll`]. since, therefore, zonking will never change what variables
+/// we add to `ac`, we don't bother to do it.
 fn bound_ty_vars(ac: &mut HashSet<BoundTyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound
