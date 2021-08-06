@@ -3,6 +3,10 @@ name = "statics"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+doctest = false
+test = false
+
 [dependencies]
 defs = { path = "../defs" }
 uniq = { path = "../uniq" }
