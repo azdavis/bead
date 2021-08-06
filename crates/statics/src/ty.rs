@@ -192,9 +192,17 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
       // NOTE: this explicitly forbids forall, but the haskell code does not.
       unreachable!("forall in unify")
     }
-    (Ty::TyVar(tv1), Ty::TyVar(tv2)) => assert!(tv1 == tv2),
-    (Ty::MetaTyVar(tv1), Ty::MetaTyVar(tv2)) => assert!(tv1 == tv2),
+    (Ty::TyVar(tv1), Ty::TyVar(tv2)) => {
+      if tv1 != tv2 {
+        panic!("cannot unify")
+      }
+    }
     (Ty::MetaTyVar(tv1), ty2) | (ty2, Ty::MetaTyVar(tv1)) => {
+      if let Ty::MetaTyVar(tv2) = ty2 {
+        if tv1 == tv2 {
+          return;
+        }
+      }
       if let Some(ty1) = cx.get(*tv1).cloned() {
         return unify(cx, ty1.as_ref(), ty2);
       }
