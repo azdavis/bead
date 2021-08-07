@@ -116,9 +116,7 @@ pub(crate) fn instantiate(cx: &mut Cx, ty: Ty) -> Rho {
         .map(|tv| (tv, Ty::MetaTyVar(cx.new_meta_ty_var())))
         .collect();
       // no capture because MetaTyVars cannot be bound and they are all new.
-      let ty = subst(&map, ty.into_inner());
-      // NOTE: this handles nested ForAlls, but the haskell code does not.
-      instantiate(cx, ty)
+      Rho::new(subst(&map, ty.into_inner()))
     }
     _ => Rho::new(ty),
   }
