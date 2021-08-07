@@ -10,7 +10,6 @@ mod ty;
 
 use event_parse::rowan_sink::{Error, RowanSink};
 use event_parse::Parser;
-use rowan::SyntaxNode;
 use std::convert::TryFrom;
 use syntax::{ast::Root, SyntaxKind as SK, Token};
 
@@ -24,9 +23,9 @@ pub fn get(tokens: &[Token<'_, SK>]) -> Parse {
   p.exit(en, SK::Root);
   let mut sink = RowanSink::default();
   p.finish(&mut sink);
-  let (green, errors) = sink.finish();
+  let (node, errors) = sink.finish();
   Parse {
-    root: Root::try_from(SyntaxNode::new_root(green)).unwrap(),
+    root: Root::try_from(node).unwrap(),
     errors,
   }
 }

@@ -9,5 +9,4 @@ test = false
 
 [dependencies]
 event-parse = { git = "https://github.com/azdavis/language-server-util.git" }
-rowan = "0.12"
 syntax = { path = "../syntax" }
