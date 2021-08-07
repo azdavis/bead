@@ -78,6 +78,7 @@ impl Ty {
 /// A [`Ty`] that is not [`Ty::ForAll`] at the top level, but may contain them
 /// nested inside.
 #[derive(Debug, Clone)]
+#[repr(transparent)]
 pub struct Rho(Ty);
 
 impl Rho {
@@ -108,6 +109,7 @@ impl AsRef<Ty> for Rho {
 
 /// A [`Ty`] with no [`Ty::ForAll`] at all, i.e. a monotype.
 #[derive(Debug, Clone)]
+#[repr(transparent)]
 pub struct Tau(Ty);
 
 impl Tau {
