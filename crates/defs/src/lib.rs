@@ -84,15 +84,12 @@ pub struct Rho(Ty);
 impl Rho {
   /// Returns a new [`Rho`]. Panics in debug mode if it is a [`Ty::ForAll`].
   pub fn new(ty: Ty) -> Self {
-    #[cfg(debug_assertions)]
-    Self::check(&ty);
+    debug_assert!(Self::is_valid(&ty));
     Self(ty)
   }
 
-  fn check(ty: &Ty) {
-    if let Ty::ForAll(_, _) = ty {
-      panic!("top-level ForAll in Rho: {:?}", ty);
-    }
+  fn is_valid(ty: &Ty) -> bool {
+    !matches!(ty, Ty::ForAll(_, _))
   }
 
   /// Unwraps the [`Ty`].
@@ -115,19 +112,17 @@ pub struct Tau(Ty);
 impl Tau {
   /// Returns a new [`Tau`]. Panics in debug mode if it contains [`Ty::ForAll`].
   pub fn new(ty: Ty) -> Self {
-    #[cfg(debug_assertions)]
-    Self::check(&ty);
+    debug_assert!(Self::is_valid(&ty));
     Self(ty)
   }
 
-  fn check(ty: &Ty) {
+  fn is_valid(ty: &Ty) -> bool {
     match ty {
-      Ty::ForAll(_, _) => panic!("ForAll in Tau: {:?}", ty),
+      Ty::ForAll(_, _) => false,
       Ty::Fun(arg_ty, res_ty) => {
-        Self::check(arg_ty);
-        Self::check(res_ty);
+        Self::is_valid(arg_ty) && Self::is_valid(res_ty)
       }
-      Ty::Int | Ty::TyVar(_) | Ty::MetaTyVar(_) => {}
+      Ty::Int | Ty::TyVar(_) | Ty::MetaTyVar(_) => true,
     }
   }
 
