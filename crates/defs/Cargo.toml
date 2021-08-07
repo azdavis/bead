@@ -8,4 +8,5 @@ doctest = false
 test = false
 
 [dependencies]
+rustc-hash = "1"
 uniq = { path = "../uniq" }

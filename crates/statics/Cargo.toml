@@ -9,4 +9,5 @@ test = false
 
 [dependencies]
 defs = { path = "../defs" }
+rustc-hash = "1"
 uniq = { path = "../uniq" }

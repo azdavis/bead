@@ -1,7 +1,7 @@
 //! Operations on [`Ty`]s.
 
 use defs::{BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar};
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use uniq::UniqGen;
 
 /// this does zonking "on the fly", so it is unnecessary to call [`zonk`] on a
@@ -10,7 +10,11 @@ use uniq::UniqGen;
 /// because zonking replaces bound meta type variables with the types they have
 /// been bound to, this has the effect of only adding unbound meta type
 /// variables to `ac`.
-pub(crate) fn meta_ty_vars(cx: &mut Cx, ac: &mut HashSet<MetaTyVar>, ty: &Ty) {
+pub(crate) fn meta_ty_vars(
+  cx: &mut Cx,
+  ac: &mut FxHashSet<MetaTyVar>,
+  ty: &Ty,
+) {
   match ty {
     Ty::ForAll(_, ty) => meta_ty_vars(cx, ac, (**ty).as_ref()),
     Ty::Fun(arg_ty, res_ty) => {
@@ -30,7 +34,7 @@ pub(crate) fn meta_ty_vars(cx: &mut Cx, ac: &mut HashSet<MetaTyVar>, ty: &Ty) {
 
 /// this does zonking "on the fly", so it is unnecessary to call [`zonk`] on a
 /// type before passing it into this.
-pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut HashSet<TyVar>, ty: &Ty) {
+pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound, *not* free
     Ty::ForAll(tvs, ty) => {
@@ -60,7 +64,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut HashSet<TyVar>, ty: &Ty) {
 /// can only be bound to monotypes, which by definition contain no
 /// [`Ty::ForAll`]. since, therefore, zonking will never change what variables
 /// we add to `ac`, we don't bother to do it.
-fn bound_ty_vars(ac: &mut HashSet<BoundTyVar>, ty: &Ty) {
+fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound
     Ty::ForAll(tvs, ty) => {
@@ -76,7 +80,7 @@ fn bound_ty_vars(ac: &mut HashSet<BoundTyVar>, ty: &Ty) {
 }
 
 /// this must not induce capture.
-fn subst(map: &HashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
+fn subst(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
   match ty {
     Ty::ForAll(tvs, ty) => {
       let mut map = map.clone();
@@ -107,7 +111,7 @@ fn subst(map: &HashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
 pub(crate) fn instantiate(cx: &mut Cx, ty: Ty) -> Rho {
   match ty {
     Ty::ForAll(tvs, ty) => {
-      let map: HashMap<_, _> = tvs
+      let map: FxHashMap<_, _> = tvs
         .into_iter()
         .map(|tv| (tv, Ty::MetaTyVar(cx.new_meta_ty_var())))
         .collect();
@@ -126,7 +130,7 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
   match ty {
     // @rule PRPOLY
     Ty::ForAll(tvs, ty) => {
-      let map: HashMap<_, _> = tvs
+      let map: FxHashMap<_, _> = tvs
         .into_iter()
         .map(|tv| {
           let sk = cx.new_skolem_ty_var(TyVar::Bound(tv));
@@ -150,8 +154,8 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
 
 /// replaces all meta type variables with new bound type variables, and binds
 /// them with a top-level forall.
-pub(crate) fn quantify(cx: &mut Cx, set: &HashSet<MetaTyVar>, ty: Rho) -> Ty {
-  let mut used_bound = HashSet::new();
+pub(crate) fn quantify(cx: &mut Cx, set: &FxHashSet<MetaTyVar>, ty: Rho) -> Ty {
+  let mut used_bound = FxHashSet::default();
   bound_ty_vars(&mut used_bound, ty.as_ref());
   let mut uniq_gen = UniqGen::default();
   let mut iter = set.iter();
@@ -225,7 +229,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
           Some(ty2) => unify(cx, &Ty::MetaTyVar(*tv1), ty2.as_ref()),
         },
         _ => {
-          let mut meta_tvs = HashSet::new();
+          let mut meta_tvs = FxHashSet::default();
           meta_ty_vars(cx, &mut meta_tvs, ty2);
           if meta_tvs.contains(tv1) {
             panic!("occurs check failed")

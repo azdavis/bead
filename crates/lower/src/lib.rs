@@ -10,7 +10,7 @@ mod ty;
 mod util;
 
 use defs::{Expr, Name};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use syntax::ast::Root;
 
 /// Does the lowering.
@@ -30,5 +30,5 @@ pub struct Lower {
   /// The expressions.
   pub exprs: Vec<Expr>,
   /// A map from each name to the string it represents.
-  pub names: HashMap<Name, String>,
+  pub names: FxHashMap<Name, String>,
 }

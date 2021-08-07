@@ -5,7 +5,7 @@
 #![deny(rust_2018_idioms)]
 #![deny(unsafe_code)]
 
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use uniq::{Uniq, UniqGen};
 
 /// A name in code, aka a variable, an identifier.
@@ -176,8 +176,8 @@ pub struct MetaTyVar(Uniq);
 #[derive(Debug, Default)]
 pub struct Cx {
   uniq_gen: UniqGen,
-  skolem_names: HashMap<SkolemTyVar, Name>,
-  meta_tys: HashMap<MetaTyVar, Tau>,
+  skolem_names: FxHashMap<SkolemTyVar, Name>,
+  meta_tys: FxHashMap<MetaTyVar, Tau>,
 }
 
 impl Cx {
@@ -221,7 +221,7 @@ impl Cx {
 
 /// Variable names in scope and their types.
 #[derive(Debug, Default, Clone)]
-pub struct Env(HashMap<Name, Ty>);
+pub struct Env(FxHashMap<Name, Ty>);
 
 impl Env {
   /// Insert `name` as having `ty`.

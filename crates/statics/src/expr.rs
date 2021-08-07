@@ -5,7 +5,7 @@ use crate::ty::{
   unify_fn, zonk,
 };
 use defs::{Cx, Env, Expr, Rho, RhoRef, Ty, TyVar};
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 /// Infer a type for `expr` under `env`.
 pub fn infer_ty_zonk(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
@@ -95,11 +95,11 @@ fn tc_rho(cx: &mut Cx, env: &Env, exp_ty: Expected<'_>, expr: &Expr) {
 fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
   // @rule GEN1
   let exp_ty = infer_rho(cx, env, expr);
-  let mut env_tvs = HashSet::new();
+  let mut env_tvs = FxHashSet::default();
   for ty in env.values() {
     meta_ty_vars(cx, &mut env_tvs, ty);
   }
-  let mut res_tvs = HashSet::new();
+  let mut res_tvs = FxHashSet::default();
   meta_ty_vars(cx, &mut res_tvs, exp_ty.as_ref());
   for tv in env_tvs {
     res_tvs.remove(&tv);
@@ -112,7 +112,7 @@ fn check_ty(cx: &mut Cx, env: &Env, expr: &Expr, ty: Ty) {
   let mut skol_tvs = Vec::new();
   let rho = skolemize(cx, &mut skol_tvs, ty.clone());
   check_rho(cx, env, expr, rho);
-  let mut env_tvs = HashSet::new();
+  let mut env_tvs = FxHashSet::default();
   free_ty_vars(cx, &mut env_tvs, &ty);
   for ty in env.values() {
     free_ty_vars(cx, &mut env_tvs, ty);
@@ -129,7 +129,7 @@ fn subs_check(cx: &mut Cx, ty1: Ty, ty2: Ty) {
   let mut skol_tvs = Vec::new();
   let rho2 = skolemize(cx, &mut skol_tvs, ty2.clone());
   subs_check_rho(cx, ty1.clone(), rho2);
-  let mut enc_tvs = HashSet::new();
+  let mut enc_tvs = FxHashSet::default();
   free_ty_vars(cx, &mut enc_tvs, &ty1);
   free_ty_vars(cx, &mut enc_tvs, &ty2);
   if skol_tvs
