@@ -12,4 +12,9 @@
 mod expr;
 mod ty;
 
-pub use expr::infer_ty_zonk as infer_ty;
+/// Infer a type for `expr` under `env`.
+pub fn get(expr: &defs::Expr) -> defs::Ty {
+  let mut cx = defs::Cx::default();
+  let env = defs::Env::default();
+  expr::infer_ty_zonk(&mut cx, &env, expr)
+}

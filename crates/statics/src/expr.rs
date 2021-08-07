@@ -7,8 +7,7 @@ use crate::ty::{
 use defs::{Cx, Env, Expr, Rho, RhoRef, Ty, TyVar};
 use rustc_hash::FxHashSet;
 
-/// Infer a type for `expr` under `env`.
-pub fn infer_ty_zonk(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
+pub(crate) fn infer_ty_zonk(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
   let ty = infer_ty(cx, env, expr);
   zonk(cx, ty)
 }

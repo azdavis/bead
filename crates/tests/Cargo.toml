@@ -7,7 +7,6 @@ edition = "2018"
 doctest = false
 
 [dependencies]
-defs = { path = "../defs" }
 lex = { path = "../lex" }
 lower = { path = "../lower" }
 parse = { path = "../parse" }
