@@ -8,6 +8,15 @@ pub use la_arena;
 use la_arena::{Arena, Idx};
 use smol_str::SmolStr;
 
+/// The arenas.
+#[derive(Debug, Default)]
+pub struct Arenas {
+  /// The expressions.
+  pub expr: ExprArena,
+  /// The types.
+  pub ty: TyArena,
+}
+
 /// A name in code, aka a variable, an identifier.
 #[derive(Debug)]
 pub struct Name(SmolStr);

@@ -1,5 +1,5 @@
 use hir::la_arena::ArenaMap;
-use hir::{ExprArena, ExprIdx, TyArena, TyIdx};
+use hir::{Arenas, ExprIdx, TyIdx};
 use rustc_hash::FxHashMap;
 use syntax::ast::{Expr, Ty};
 use syntax::AstPtr;
@@ -11,15 +11,6 @@ pub struct Lower {
   pub arenas: Arenas,
   /// The pointers.
   pub ptrs: Ptrs,
-}
-
-/// The arenas.
-#[derive(Debug, Default)]
-pub struct Arenas {
-  /// The expressions.
-  pub expr: ExprArena,
-  /// The types.
-  pub ty: TyArena,
 }
 
 /// The pointers.
