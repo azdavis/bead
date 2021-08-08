@@ -1,4 +1,4 @@
-use crate::util::Lower as Cx;
+use crate::defs::Lower as Cx;
 use hir::Name;
 use syntax::{ast::Ty, AstPtr};
 

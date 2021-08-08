@@ -5,11 +5,11 @@
 #![deny(rust_2018_idioms)]
 #![deny(unsafe_code)]
 
+mod defs;
 mod expr;
 mod ty;
-mod util;
 
-pub use util::Lower;
+pub use defs::Lower;
 
 /// Does the lowering.
 pub fn get(root: syntax::ast::Root) -> Lower {

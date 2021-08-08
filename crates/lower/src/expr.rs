@@ -1,5 +1,5 @@
+use crate::defs::Lower as Cx;
 use crate::ty;
-use crate::util::Lower as Cx;
 use hir::Name;
 use syntax::{ast::Expr, AstPtr};
 
