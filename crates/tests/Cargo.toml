@@ -8,6 +8,6 @@ doctest = false
 
 [dependencies]
 lex = { path = "../lex" }
-lower-neue = { path = "../lower-neue" }
+lower = { path = "../lower" }
 parse = { path = "../parse" }
 statics = { path = "../statics" }
