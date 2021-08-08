@@ -1,0 +1,8 @@
+[package]
+name = "hir"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+la-arena = "0.2"
+smol_str = "0.1"
