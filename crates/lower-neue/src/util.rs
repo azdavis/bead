@@ -11,6 +11,8 @@ pub struct Lower {
   pub arenas: Arenas,
   /// The pointers.
   pub ptrs: Ptrs,
+  /// The top-level expressions.
+  pub top: Vec<ExprIdx>,
 }
 
 /// The pointers.

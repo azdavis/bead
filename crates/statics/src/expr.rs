@@ -1,14 +1,22 @@
 //! Typechecking [`Expr`]s.
 
+use crate::lower;
 use crate::ty::{
   free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
   unify_fn, zonk,
 };
-use defs::{Cx, Env, Expr, Rho, RhoRef, Ty, TyVar};
+use crate::util::Env;
+use defs::{Cx, Rho, RhoRef, Ty, TyVar};
+use hir::{Arenas, Expr, ExprIdx};
 use rustc_hash::FxHashSet;
 
-pub(crate) fn infer_ty_zonk(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
-  let ty = infer_ty(cx, env, expr);
+pub(crate) fn infer_ty_zonk(
+  cx: &mut Cx,
+  arenas: &Arenas,
+  env: &Env,
+  expr: ExprIdx,
+) -> Ty {
+  let ty = infer_ty(cx, arenas, env, expr);
   zonk(cx, ty)
 }
 
@@ -21,79 +29,89 @@ enum Expected<'a> {
   Check(Rho),
 }
 
-fn infer_rho(cx: &mut Cx, env: &Env, expr: &Expr) -> Rho {
+fn infer_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Rho {
   let mut ret = RhoRef::default();
-  tc_rho(cx, env, Expected::Infer(&mut ret), expr);
+  tc_rho(cx, arenas, env, Expected::Infer(&mut ret), expr);
   ret.unwrap()
 }
 
-fn check_rho(cx: &mut Cx, env: &Env, expr: &Expr, rho: Rho) {
-  tc_rho(cx, env, Expected::Check(rho), expr)
+fn check_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, rho: Rho) {
+  tc_rho(cx, arenas, env, Expected::Check(rho), expr)
 }
 
-fn tc_rho(cx: &mut Cx, env: &Env, exp_ty: Expected<'_>, expr: &Expr) {
-  match expr {
+fn tc_rho(
+  cx: &mut Cx,
+  arenas: &Arenas,
+  env: &Env,
+  exp_ty: Expected<'_>,
+  expr: ExprIdx,
+) {
+  match arenas.expr[expr] {
+    Expr::None => todo!(),
     // @rule INT
     Expr::Int(_) => inst_ty(cx, Ty::Int, exp_ty),
     // @rule VAR
-    Expr::Var(v) => {
-      let ty = env.get(v).unwrap();
+    Expr::Name(ref name) => {
+      let ty = env.get(name).unwrap();
       inst_ty(cx, ty.clone(), exp_ty)
     }
-    Expr::Lam(var, body) => match exp_ty {
+    Expr::Lam(ref var, body) => match exp_ty {
       // @rule ABS1
       Expected::Infer(exp_ty) => {
         let var_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
-        let env = env.clone().insert(*var, var_ty.clone());
-        let body_ty = infer_rho(cx, &env, body);
+        let env = env.clone().insert(var.clone(), var_ty.clone());
+        let body_ty = infer_rho(cx, arenas, &env, body);
         exp_ty.set(Rho::new(Ty::fun(var_ty, body_ty.into_inner())));
       }
       // @rule ABS2
       Expected::Check(exp_ty) => {
         let (var_ty, body_ty) = unify_fn(cx, &exp_ty);
-        let env = env.clone().insert(*var, var_ty);
-        check_rho(cx, &env, body, body_ty);
+        let env = env.clone().insert(var.clone(), var_ty);
+        check_rho(cx, arenas, &env, body, body_ty);
       }
     },
-    Expr::ALam(var, var_ty, body) => match exp_ty {
+    Expr::ALam(ref var, var_ty, body) => match exp_ty {
       // @rule AABS1
       Expected::Infer(exp_ty) => {
-        let env = env.clone().insert(*var, var_ty.clone());
-        let body_ty = infer_rho(cx, &env, body);
-        exp_ty.set(Rho::new(Ty::fun(var_ty.clone(), body_ty.into_inner())));
+        let var_ty = lower::ty(cx, arenas, var_ty);
+        let env = env.clone().insert(var.clone(), var_ty.clone());
+        let body_ty = infer_rho(cx, arenas, &env, body);
+        exp_ty.set(Rho::new(Ty::fun(var_ty, body_ty.into_inner())));
       }
       // @rule AABS2
       Expected::Check(exp_ty) => {
+        let var_ty = lower::ty(cx, arenas, var_ty);
         let (arg_ty, body_ty) = unify_fn(cx, &exp_ty);
         subs_check(cx, arg_ty, var_ty.clone());
-        let env = env.clone().insert(*var, var_ty.clone());
-        check_rho(cx, &env, body, body_ty);
+        let env = env.clone().insert(var.clone(), var_ty);
+        check_rho(cx, arenas, &env, body, body_ty);
       }
     },
     // @rule APP
     Expr::App(fun, arg) => {
-      let fun_ty = infer_rho(cx, env, fun);
+      let fun_ty = infer_rho(cx, arenas, env, fun);
       let (arg_ty, res_ty) = unify_fn(cx, &fun_ty);
-      check_ty(cx, env, arg, arg_ty);
+      check_ty(cx, arenas, env, arg, arg_ty);
       inst_ty(cx, res_ty.into_inner(), exp_ty);
     }
     // @rule LET
-    Expr::Let(var, rhs, body) => {
-      let var_ty = infer_ty(cx, env, rhs);
-      let env = env.clone().insert(*var, var_ty);
-      tc_rho(cx, &env, exp_ty, body);
+    Expr::Let(ref var, rhs, body) => {
+      let var_ty = infer_ty(cx, arenas, env, rhs);
+      let env = env.clone().insert(var.clone(), var_ty);
+      tc_rho(cx, arenas, &env, exp_ty, body);
     }
     // @rule ANNOT
     Expr::Ann(body, ann_ty) => {
-      check_ty(cx, env, body, ann_ty.clone());
-      inst_ty(cx, ann_ty.clone(), exp_ty);
+      let ann_ty = lower::ty(cx, arenas, ann_ty);
+      check_ty(cx, arenas, env, body, ann_ty.clone());
+      inst_ty(cx, ann_ty, exp_ty);
     }
   }
 }
 
-fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
+fn infer_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Ty {
   // @rule GEN1
-  let exp_ty = infer_rho(cx, env, expr);
+  let exp_ty = infer_rho(cx, arenas, env, expr);
   let mut env_tvs = FxHashSet::default();
   for ty in env.values() {
     meta_ty_vars(cx, &mut env_tvs, ty);
@@ -106,11 +124,11 @@ fn infer_ty(cx: &mut Cx, env: &Env, expr: &Expr) -> Ty {
   quantify(cx, &res_tvs, exp_ty)
 }
 
-fn check_ty(cx: &mut Cx, env: &Env, expr: &Expr, ty: Ty) {
+fn check_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, ty: Ty) {
   // @rule GEN2
   let mut skol_tvs = Vec::new();
   let rho = skolemize(cx, &mut skol_tvs, ty.clone());
-  check_rho(cx, env, expr, rho);
+  check_rho(cx, arenas, env, expr, rho);
   let mut env_tvs = FxHashSet::default();
   free_ty_vars(cx, &mut env_tvs, &ty);
   for ty in env.values() {

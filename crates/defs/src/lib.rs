@@ -175,6 +175,7 @@ pub struct Cx {
   uniq_gen: UniqGen,
   skolem_names: FxHashMap<SkolemTyVar, Name>,
   meta_tys: FxHashMap<MetaTyVar, Tau>,
+  names: FxHashMap<hir::Name, Name>,
 }
 
 impl Cx {
@@ -213,6 +214,16 @@ impl Cx {
   /// Returns the [`Tau`] that `tv` refers to, if any.
   pub fn get(&self, tv: MetaTyVar) -> Option<&Tau> {
     self.meta_tys.get(&tv)
+  }
+
+  /// Returns a [`Name`] for the HIR name.
+  pub fn name(&mut self, name: &hir::Name) -> Name {
+    if let Some(&name) = self.names.get(name) {
+      return name;
+    }
+    let ret = Name::new(self.uniq_gen.gen());
+    self.names.insert(name.clone(), ret);
+    ret
   }
 }
 

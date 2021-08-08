@@ -15,7 +15,8 @@ pub use util::Lower;
 pub fn get(root: syntax::ast::Root) -> Lower {
   let mut cx = Lower::default();
   for expr in root.exprs() {
-    expr::get(&mut cx, expr);
+    let e = expr::get(&mut cx, expr);
+    cx.top.push(e);
   }
   cx
 }

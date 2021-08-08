@@ -18,7 +18,7 @@ pub struct Arenas {
 }
 
 /// A name in code, aka a variable, an identifier.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Name(SmolStr);
 
 impl Name {

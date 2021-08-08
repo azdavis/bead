@@ -3,8 +3,8 @@ pub(crate) fn check(s: &str) {
   assert!(lexed.errors.is_empty());
   let parsed = parse::get(&lexed.tokens);
   assert!(parsed.errors.is_empty());
-  let mut lowered = lower::get(parsed.root);
-  let expr = lowered.exprs.pop().unwrap();
-  assert!(lowered.exprs.is_empty());
-  statics::get(&expr);
+  let lowered = lower_neue::get(parsed.root);
+  assert_eq!(lowered.top.len(), 1);
+  let expr = *lowered.top.first().unwrap();
+  statics::get(&lowered.arenas, expr);
 }

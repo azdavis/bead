@@ -10,11 +10,13 @@
 #![deny(unsafe_code)]
 
 mod expr;
+mod lower;
 mod ty;
+mod util;
 
 /// Infer a type for `expr` under `env`.
-pub fn get(expr: &defs::Expr) -> defs::Ty {
+pub fn get(arenas: &hir::Arenas, expr: hir::ExprIdx) -> defs::Ty {
   let mut cx = defs::Cx::default();
-  let env = defs::Env::default();
-  expr::infer_ty_zonk(&mut cx, &env, expr)
+  let env = util::Env::default();
+  expr::infer_ty_zonk(&mut cx, arenas, &env, expr)
 }
