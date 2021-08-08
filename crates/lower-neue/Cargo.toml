@@ -1,0 +1,13 @@
+[package]
+name = "lower-neue"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+doctest = false
+test = false
+
+[dependencies]
+hir = { path = "../hir" }
+rustc-hash = "1"
+syntax = { path = "../syntax" }
