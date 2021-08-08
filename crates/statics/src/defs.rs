@@ -1,10 +1,5 @@
 //! Definitions of data types.
 
-#![deny(missing_debug_implementations)]
-#![deny(missing_docs)]
-#![deny(rust_2018_idioms)]
-#![deny(unsafe_code)]
-
 use rustc_hash::FxHashMap;
 use uniq::{Uniq, UniqGen};
 
@@ -19,28 +14,9 @@ impl Name {
   }
 }
 
-/// An expression.
-#[derive(Debug)]
-pub enum Expr {
-  /// Integer literal.
-  Int(i32),
-  /// Variable.
-  Var(Name),
-  /// Lambda, a function literal.
-  Lam(Name, Box<Expr>),
-  /// Annotated lambda. The variable type is given by the [`Ty`].
-  ALam(Name, Ty, Box<Expr>),
-  /// Function application.
-  App(Box<Expr>, Box<Expr>),
-  /// Variable binding. The variable's contents are the first [`Expr`] and it
-  /// is is available in the scope of the latter [`Expr`].
-  Let(Name, Box<Expr>, Box<Expr>),
-  /// Annotation.
-  Ann(Box<Expr>, Ty),
-}
-
 /// A type. "Sigma" in the MSR paper.
 #[derive(Debug, Clone)]
+#[allow(clippy::enum_variant_names)]
 pub enum Ty {
   /// Forall types. The bound type variables may appear in the [`Rho`].
   ///
@@ -229,17 +205,17 @@ impl Cx {
 
 /// Variable names in scope and their types.
 #[derive(Debug, Default, Clone)]
-pub struct Env(FxHashMap<Name, Ty>);
+pub struct Env(FxHashMap<hir::Name, Ty>);
 
 impl Env {
   /// Insert `name` as having `ty`.
-  pub fn insert(mut self, name: Name, ty: Ty) -> Self {
+  pub fn insert(mut self, name: hir::Name, ty: Ty) -> Self {
     self.0.insert(name, ty);
     self
   }
 
   /// Returns the [`Ty`] that `name` refers to, if any.
-  pub fn get(&self, name: &Name) -> Option<&Ty> {
+  pub fn get(&self, name: &hir::Name) -> Option<&Ty> {
     self.0.get(name)
   }
 

@@ -1,6 +1,8 @@
 //! Operations on [`Ty`]s.
 
-use defs::{BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar};
+use crate::defs::{
+  BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use uniq::UniqGen;
 

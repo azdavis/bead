@@ -1,12 +1,12 @@
 //! Typechecking [`Expr`]s.
 
+use crate::defs::Env;
+use crate::defs::{Cx, Rho, RhoRef, Ty, TyVar};
 use crate::lower;
 use crate::ty::{
   free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
   unify_fn, zonk,
 };
-use crate::util::Env;
-use defs::{Cx, Rho, RhoRef, Ty, TyVar};
 use hir::{Arenas, Expr, ExprIdx};
 use rustc_hash::FxHashSet;
 

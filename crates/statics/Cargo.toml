@@ -8,7 +8,6 @@ doctest = false
 test = false
 
 [dependencies]
-defs = { path = "../defs" }
 hir = { path = "../hir" }
 rustc-hash = "1"
 uniq = { path = "../uniq" }

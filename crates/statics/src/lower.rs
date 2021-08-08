@@ -1,4 +1,4 @@
-use defs::{BoundTyVar, Cx, Rho, TyVar};
+use crate::defs::{self, BoundTyVar, Cx, Rho, TyVar};
 use hir::{Arenas, Name, Ty, TyIdx};
 
 pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> defs::Ty {
