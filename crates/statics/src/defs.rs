@@ -1,18 +1,8 @@
 //! Definitions of data types.
 
+use hir::Name;
 use rustc_hash::FxHashMap;
 use uniq::{Uniq, UniqGen};
-
-/// A name in code, aka a variable, an identifier.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct Name(Uniq);
-
-impl Name {
-  /// Returns a new [`Name`].
-  pub(crate) fn new(u: Uniq) -> Self {
-    Self(u)
-  }
-}
 
 /// A type. "Sigma" in the MSR paper.
 #[derive(Debug, Clone)]
@@ -117,7 +107,7 @@ impl AsRef<Ty> for Tau {
 }
 
 /// A type variable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TyVar {
   /// A bound type variable.
   Bound(BoundTyVar),
@@ -127,7 +117,7 @@ pub enum TyVar {
 
 /// A type variable bound by a [`Ty::ForAll`]. This is the only kind of type
 /// variable writeable in user code.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BoundTyVar(Name);
 
 impl BoundTyVar {
@@ -153,7 +143,6 @@ pub(crate) struct Cx {
   uniq_gen: UniqGen,
   skolem_names: FxHashMap<SkolemTyVar, Name>,
   meta_tys: FxHashMap<MetaTyVar, Tau>,
-  names: FxHashMap<hir::Name, Name>,
 }
 
 impl Cx {
@@ -173,7 +162,7 @@ impl Cx {
   fn ty_var_name(&self, tv: TyVar) -> Name {
     match tv {
       TyVar::Bound(BoundTyVar(name)) => name,
-      TyVar::Skolem(tv) => self.skolem_names[&tv],
+      TyVar::Skolem(tv) => self.skolem_names[&tv].clone(),
     }
   }
 
@@ -193,31 +182,21 @@ impl Cx {
   pub(crate) fn get(&self, tv: MetaTyVar) -> Option<&Tau> {
     self.meta_tys.get(&tv)
   }
-
-  /// Returns a [`Name`] for the HIR name.
-  pub(crate) fn name(&mut self, name: &hir::Name) -> Name {
-    if let Some(&name) = self.names.get(name) {
-      return name;
-    }
-    let ret = Name::new(self.uniq_gen.gen());
-    self.names.insert(name.clone(), ret);
-    ret
-  }
 }
 
 /// Variable names in scope and their types.
 #[derive(Debug, Default, Clone)]
-pub(crate) struct Env(FxHashMap<hir::Name, Ty>);
+pub(crate) struct Env(FxHashMap<Name, Ty>);
 
 impl Env {
   /// Insert `name` as having `ty`.
-  pub(crate) fn insert(mut self, name: hir::Name, ty: Ty) -> Self {
+  pub(crate) fn insert(mut self, name: Name, ty: Ty) -> Self {
     self.0.insert(name, ty);
     self
   }
 
   /// Returns the [`Ty`] that `name` refers to, if any.
-  pub(crate) fn get(&self, name: &hir::Name) -> Option<&Ty> {
+  pub(crate) fn get(&self, name: &Name) -> Option<&Ty> {
     self.0.get(name)
   }
 

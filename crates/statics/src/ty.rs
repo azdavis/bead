@@ -1,10 +1,10 @@
 //! Operations on [`Ty`]s.
 
 use crate::defs::{
-  BoundTyVar, Cx, MetaTyVar, Name, Rho, SkolemTyVar, Tau, Ty, TyVar,
+  BoundTyVar, Cx, MetaTyVar, Rho, SkolemTyVar, Tau, Ty, TyVar,
 };
+use hir::Name;
 use rustc_hash::{FxHashMap, FxHashSet};
-use uniq::UniqGen;
 
 /// this does zonking "on the fly", so it is unnecessary to call [`zonk`] on a
 /// type before passing it into this.
@@ -41,8 +41,8 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
     // `tvs` are bound, *not* free
     Ty::ForAll(tvs, ty) => {
       free_ty_vars(cx, ac, (**ty).as_ref());
-      for &tv in tvs {
-        ac.remove(&TyVar::Bound(tv));
+      for tv in tvs {
+        ac.remove(&TyVar::Bound(tv.clone()));
       }
     }
     Ty::Fun(arg_ty, res_ty) => {
@@ -51,7 +51,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
     }
     // might be free, will be removed if bound
     Ty::TyVar(tv) => {
-      ac.insert(*tv);
+      ac.insert(tv.clone());
     }
     // see the case in `zonk`.
     Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
@@ -70,7 +70,7 @@ fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound
     Ty::ForAll(tvs, ty) => {
-      ac.extend(tvs.iter().copied());
+      ac.extend(tvs.iter().cloned());
       bound_ty_vars(ac, (**ty).as_ref());
     }
     Ty::Fun(arg_ty, res_ty) => {
@@ -134,7 +134,7 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
       let map: FxHashMap<_, _> = tvs
         .into_iter()
         .map(|tv| {
-          let sk = cx.new_skolem_ty_var(TyVar::Bound(tv));
+          let sk = cx.new_skolem_ty_var(TyVar::Bound(tv.clone()));
           ac.push(sk);
           (tv, Ty::TyVar(TyVar::Skolem(sk)))
         })
@@ -158,15 +158,16 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
 pub(crate) fn quantify(cx: &mut Cx, set: &FxHashSet<MetaTyVar>, ty: Rho) -> Ty {
   let mut used_bound = FxHashSet::default();
   bound_ty_vars(&mut used_bound, ty.as_ref());
-  let mut uniq_gen = UniqGen::default();
   let mut iter = set.iter();
   let mut new_bound = Vec::with_capacity(set.len());
+  let mut n = 0u32;
   while iter.len() != 0 {
-    let bound_tv = BoundTyVar::new(Name::new(uniq_gen.gen()));
+    let bound_tv = BoundTyVar::new(Name::new(format!("t{}", n)));
+    n += 1;
     if used_bound.contains(&bound_tv) {
       continue;
     }
-    new_bound.push(bound_tv);
+    new_bound.push(bound_tv.clone());
     let meta_tv = *iter.next().expect("checked len != 0");
     cx.set(meta_tv, Tau::new(Ty::TyVar(TyVar::Bound(bound_tv))));
   }
