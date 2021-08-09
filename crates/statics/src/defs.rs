@@ -18,6 +18,8 @@ impl Name {
 #[derive(Debug, Clone)]
 #[allow(clippy::enum_variant_names)]
 pub enum Ty {
+  /// "No" type.
+  None,
   /// Forall types. The bound type variables may appear in the [`Rho`].
   ///
   /// Prefer using [`Ty::for_all`] to construct these.
@@ -98,7 +100,7 @@ impl Tau {
       Ty::Fun(arg_ty, res_ty) => {
         Self::is_valid(arg_ty) && Self::is_valid(res_ty)
       }
-      Ty::Int | Ty::TyVar(_) | Ty::MetaTyVar(_) => true,
+      Ty::None | Ty::Int | Ty::TyVar(_) | Ty::MetaTyVar(_) => true,
     }
   }
 

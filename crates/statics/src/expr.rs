@@ -47,7 +47,10 @@ fn tc_rho(
   expr: ExprIdx,
 ) {
   match arenas.expr[expr] {
-    Expr::None => todo!(),
+    Expr::None => match exp_ty {
+      Expected::Infer(exp_ty) => exp_ty.set(Rho::new(Ty::None)),
+      Expected::Check(_) => {}
+    },
     // @rule INT
     Expr::Int(_) => inst_ty(cx, Ty::Int, exp_ty),
     // @rule VAR

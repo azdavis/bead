@@ -3,7 +3,7 @@ use hir::{Arenas, Name, Ty, TyIdx};
 
 pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> defs::Ty {
   match arenas.ty[ty_idx] {
-    Ty::None => todo!(),
+    Ty::None => defs::Ty::None,
     Ty::ForAll(ref tvs, t) => {
       let tvs: Vec<_> = tvs.iter().map(|name| bound_ty_var(cx, name)).collect();
       // TODO `Rho::new` could panic.
