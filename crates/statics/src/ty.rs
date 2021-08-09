@@ -49,7 +49,6 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
       free_ty_vars(cx, ac, arg_ty);
       free_ty_vars(cx, ac, res_ty);
     }
-    Ty::Int => {}
     // might be free, will be removed if bound
     Ty::TyVar(tv) => {
       ac.insert(*tv);
@@ -59,6 +58,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
       None => {}
       Some(ty) => free_ty_vars(cx, ac, ty.as_ref()),
     },
+    Ty::Int => {}
   }
 }
 
@@ -96,7 +96,6 @@ fn subst(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
       let res_ty = subst(map, *res_ty);
       Ty::fun(arg_ty, res_ty)
     }
-    Ty::Int => Ty::Int,
     Ty::TyVar(tv) => match tv {
       TyVar::Bound(tv) => match map.get(&tv) {
         None => Ty::TyVar(TyVar::Bound(tv)),
@@ -104,6 +103,7 @@ fn subst(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
       },
       TyVar::Skolem(tv) => Ty::TyVar(TyVar::Skolem(tv)),
     },
+    Ty::Int => Ty::Int,
     Ty::MetaTyVar(tv) => Ty::MetaTyVar(tv),
   }
 }
@@ -185,8 +185,6 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
       let res_ty = zonk(cx, *res_ty);
       Ty::fun(arg_ty, res_ty)
     }
-    Ty::Int => Ty::Int,
-    Ty::TyVar(tv) => Ty::TyVar(tv),
     // the only interesting case
     Ty::MetaTyVar(tv) => match cx.get(tv) {
       None => Ty::MetaTyVar(tv),
@@ -197,6 +195,8 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
         ty
       }
     },
+    Ty::Int => Ty::Int,
+    Ty::TyVar(tv) => Ty::TyVar(tv),
   }
 }
 
