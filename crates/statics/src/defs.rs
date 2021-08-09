@@ -56,6 +56,11 @@ impl Rho {
     Self(ty)
   }
 
+  /// Returns a new [`Rho`] if the `ty` is not a [`Ty::ForAll`].
+  pub(crate) fn new_opt(ty: Ty) -> Option<Self> {
+    Self::is_valid(&ty).then(|| Self(ty))
+  }
+
   fn is_valid(ty: &Ty) -> bool {
     !matches!(ty, Ty::ForAll(_, _))
   }

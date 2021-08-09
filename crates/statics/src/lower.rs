@@ -9,8 +9,9 @@ pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> defs::Ty {
         .iter()
         .map(|name| BoundTyVar::new(name.clone()))
         .collect();
-      // TODO `Rho::new` could panic.
-      let t = Rho::new(ty(cx, arenas, t));
+      // TODO report an error
+      let t = Rho::new_opt(ty(cx, arenas, t))
+        .unwrap_or_else(|| Rho::new(defs::Ty::None));
       defs::Ty::for_all(tvs, t)
     }
     Ty::Fun(arg, res) => {
