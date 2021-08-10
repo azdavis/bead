@@ -205,12 +205,12 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
 
 pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
   match (ty1, ty2) {
-    (Ty::TyVar(TyVar::Bound(_)), _) | (_, Ty::TyVar(TyVar::Bound(_))) => {
-      unreachable!("bound ty vars in unify")
-    }
-    (Ty::ForAll(..), _) | (_, Ty::ForAll(..)) => {
-      // NOTE: this explicitly forbids forall, but the haskell code does not.
-      unreachable!("forall in unify")
+    // NOTE: this explicitly forbids forall, but the haskell code does not.
+    (Ty::TyVar(TyVar::Bound(_)), _)
+    | (_, Ty::TyVar(TyVar::Bound(_)))
+    | (Ty::ForAll(_, _), _)
+    | (_, Ty::ForAll(_, _)) => {
+      unreachable!("bad types in unify: {:?} {:?}", ty1, ty2)
     }
     (Ty::TyVar(tv1), Ty::TyVar(tv2)) => {
       if tv1 != tv2 {
