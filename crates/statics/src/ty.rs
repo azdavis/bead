@@ -247,8 +247,8 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
       unify(cx, res_ty1, res_ty2);
     }
     (Ty::None, _) | (_, Ty::None) => {}
-    (Ty::Int, _) | (_, Ty::Int) | (Ty::Fun(..), _) | (_, Ty::Fun(..)) => {
-      panic!("cannot unify {:?} {:?}", ty1, ty2)
+    (Ty::Int, _) | (_, Ty::Int) | (Ty::Fun(_, _), _) | (_, Ty::Fun(_, _)) => {
+      cx.err(EK::CannotUnify(ty1.clone(), ty2.clone()));
     }
   }
 }
