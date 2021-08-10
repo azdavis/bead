@@ -137,10 +137,11 @@ fn check_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, ty: Ty) {
   for ty in env.values() {
     free_ty_vars(cx, &mut env_tvs, ty);
   }
-  for skol_tv in skol_tvs {
-    if env_tvs.contains(&TyVar::Skolem(skol_tv)) {
-      panic!("type not polymorphic enough")
-    }
+  if skol_tvs
+    .into_iter()
+    .any(|skol_tv| env_tvs.contains(&TyVar::Skolem(skol_tv)))
+  {
+    panic!("type not polymorphic enough")
   }
 }
 
