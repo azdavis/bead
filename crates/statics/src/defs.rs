@@ -150,6 +150,7 @@ pub enum ErrorKind {
   CannotUnify(Ty, Ty),
   OccursCheckFailed(Ty, MetaTyVar),
   NotInScope(Name),
+  InvalidRhoTy,
 }
 
 /// Mutable state updated during typechecking.

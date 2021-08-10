@@ -1,4 +1,4 @@
-use crate::defs::{self, BoundTyVar, Cx, Rho, TyVar};
+use crate::defs::{self, BoundTyVar, Cx, ErrorKind as EK, Rho, TyVar};
 use hir::{Arenas, Ty, TyIdx};
 
 pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> defs::Ty {
@@ -9,9 +9,10 @@ pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> defs::Ty {
         .iter()
         .map(|name| BoundTyVar::new(name.clone()))
         .collect();
-      // TODO report an error
-      let t = Rho::new_opt(ty(cx, arenas, t))
-        .unwrap_or_else(|| Rho::new(defs::Ty::None));
+      let t = Rho::new_opt(ty(cx, arenas, t)).unwrap_or_else(|| {
+        cx.err(EK::InvalidRhoTy);
+        Rho::new(defs::Ty::None)
+      });
       defs::Ty::for_all(tvs, t)
     }
     Ty::Fun(arg, res) => {
