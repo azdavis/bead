@@ -32,7 +32,7 @@ enum Expected<'a> {
 fn infer_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Rho {
   let mut ret = RhoRef::default();
   tc_rho(cx, arenas, env, Expected::Infer(&mut ret), expr);
-  ret.unwrap()
+  ret.expect("the RhoRef should be set")
 }
 
 fn check_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, rho: Rho) {

@@ -222,8 +222,9 @@ impl RhoRef {
     self.0 = Some(rho);
   }
 
-  /// Unwraps the [`Rho`] inside, if any. Panics if there is none.
-  pub(crate) fn unwrap(self) -> Rho {
-    self.0.unwrap()
+  /// Unwraps the [`Rho`] inside, if any. Panics with the message if there is
+  /// none.
+  pub(crate) fn expect(self, message: &str) -> Rho {
+    self.0.expect(message)
   }
 }

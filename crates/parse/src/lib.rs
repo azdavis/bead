@@ -25,7 +25,7 @@ pub fn get(tokens: &[Token<'_, SK>]) -> Parse {
   p.finish(&mut sink);
   let (node, errors) = sink.finish();
   Parse {
-    root: Root::try_from(node).unwrap(),
+    root: Root::try_from(node).expect("there is exactly one root"),
     errors,
   }
 }

@@ -5,7 +5,9 @@ fn main() -> std::io::Result<()> {
   gen(
     "Bead",
     &["Invalid", "Whitespace", "LineComment"],
-    include_str!("syntax.ungram").parse().unwrap(),
+    include_str!("syntax.ungram")
+      .parse()
+      .expect("ungram parse error"),
     |tok| match tok {
       "IntLit" => (TokenKind::Special("an integer literal"), tok.to_owned()),
       "Name" => (TokenKind::Special("a name"), tok.to_owned()),
