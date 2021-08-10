@@ -1,7 +1,7 @@
 //! Operations on [`Ty`]s.
 
 use crate::defs::{
-  BoundTyVar, Cx, MetaTyVar, Rho, SkolemTyVar, Tau, Ty, TyVar,
+  BoundTyVar, Cx, ErrorKind as EK, MetaTyVar, Rho, SkolemTyVar, Tau, Ty, TyVar,
 };
 use hir::Name;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -214,7 +214,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
     }
     (Ty::TyVar(tv1), Ty::TyVar(tv2)) => {
       if tv1 != tv2 {
-        panic!("cannot unify {:?} {:?}", tv1, tv2)
+        cx.err(EK::CannotUnify(ty1.clone(), ty2.clone()));
       }
     }
     (Ty::MetaTyVar(tv1), ty2) | (ty2, Ty::MetaTyVar(tv1)) => {
@@ -234,10 +234,13 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
         _ => {
           let mut meta_tvs = FxHashSet::default();
           meta_ty_vars(cx, &mut meta_tvs, ty2);
-          if meta_tvs.contains(tv1) {
-            panic!("occurs check failed")
-          }
-          cx.set(*tv1, Tau::new(ty2.clone()));
+          let t = if meta_tvs.contains(tv1) {
+            cx.err(EK::OccursCheckFailed(ty2.clone(), *tv1));
+            Ty::None
+          } else {
+            ty2.clone()
+          };
+          cx.set(*tv1, Tau::new(t));
         }
       }
     }

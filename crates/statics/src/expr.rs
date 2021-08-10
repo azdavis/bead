@@ -1,7 +1,7 @@
 //! Typechecking [`Expr`]s.
 
 use crate::defs::Env;
-use crate::defs::{Cx, Rho, RhoRef, Ty, TyVar};
+use crate::defs::{Cx, ErrorKind as EK, Rho, RhoRef, Ty, TyVar};
 use crate::lower;
 use crate::ty::{
   free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
@@ -55,8 +55,11 @@ fn tc_rho(
     Expr::Int(_) => inst_ty(cx, Ty::Int, exp_ty),
     // @rule VAR
     Expr::Name(ref name) => {
-      let ty = env.get(name).unwrap();
-      inst_ty(cx, ty.clone(), exp_ty)
+      let ty = env.get(name).cloned().unwrap_or_else(|| {
+        cx.err(EK::NotInScope(name.clone()));
+        Ty::None
+      });
+      inst_ty(cx, ty, exp_ty)
     }
     Expr::Lam(ref var, body) => match exp_ty {
       // @rule ABS1
@@ -141,7 +144,7 @@ fn check_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, ty: Ty) {
     .into_iter()
     .any(|skol_tv| env_tvs.contains(&TyVar::Skolem(skol_tv)))
   {
-    panic!("type not polymorphic enough")
+    cx.err(EK::NotPolymorphicEnough(ty));
   }
 }
 
@@ -157,7 +160,7 @@ fn subs_check(cx: &mut Cx, ty1: Ty, ty2: Ty) {
     .into_iter()
     .any(|tv| enc_tvs.contains(&TyVar::Skolem(tv)))
   {
-    panic!("ty1 not as polymorphic as ty2")
+    cx.err(EK::NotAsPolymorphicAsOther(ty1, ty2));
   }
 }
 

@@ -54,13 +54,13 @@ fn f. f id (f int_id 3)) :
 }
 
 #[test]
-#[should_panic]
+#[should_panic = "statics err"]
 fn not_in_scope() {
   check("x");
 }
 
 #[test]
-#[should_panic]
+#[should_panic = "statics err"]
 fn bad_app() {
   check("3 3");
 }

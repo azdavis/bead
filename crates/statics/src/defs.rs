@@ -142,12 +142,23 @@ pub struct SkolemTyVar(Uniq);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MetaTyVar(Uniq);
 
+/// A kind of error.
+#[derive(Debug)]
+pub enum ErrorKind {
+  NotPolymorphicEnough(Ty),
+  NotAsPolymorphicAsOther(Ty, Ty),
+  CannotUnify(Ty, Ty),
+  OccursCheckFailed(Ty, MetaTyVar),
+  NotInScope(Name),
+}
+
 /// Mutable state updated during typechecking.
 #[derive(Debug, Default)]
 pub(crate) struct Cx {
   uniq_gen: UniqGen,
   skolem_names: FxHashMap<SkolemTyVar, Name>,
   meta_tys: FxHashMap<MetaTyVar, Tau>,
+  errors: Vec<ErrorKind>,
 }
 
 impl Cx {
@@ -186,6 +197,16 @@ impl Cx {
   /// Returns the [`Tau`] that `tv` refers to, if any.
   pub(crate) fn get(&self, tv: MetaTyVar) -> Option<&Tau> {
     self.meta_tys.get(&tv)
+  }
+
+  /// Records an error.
+  pub(crate) fn err(&mut self, ek: ErrorKind) {
+    self.errors.push(ek);
+  }
+
+  /// Returns the errors.
+  pub(crate) fn finish(self) -> Vec<ErrorKind> {
+    self.errors
   }
 }
 
@@ -227,4 +248,13 @@ impl RhoRef {
   pub(crate) fn expect(self, message: &str) -> Rho {
     self.0.expect(message)
   }
+}
+
+/// The result of running statics.
+#[derive(Debug)]
+pub struct Statics {
+  /// The type of the expression.
+  pub ty: Ty,
+  /// The errors.
+  pub errors: Vec<ErrorKind>,
 }
