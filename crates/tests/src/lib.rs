@@ -2,9 +2,9 @@
 
 #![cfg(test)]
 
-mod helpers;
+mod support;
 
-use helpers::check;
+use support::check;
 
 #[test]
 fn int_lit() {
