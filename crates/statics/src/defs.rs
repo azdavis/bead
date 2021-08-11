@@ -1,5 +1,8 @@
 //! Definitions of data types.
 
+mod entity;
+
+pub use entity::Entity;
 use hir::Name;
 use rustc_hash::FxHashMap;
 use uniq::{Uniq, UniqGen};
@@ -142,10 +145,20 @@ pub struct SkolemTyVar(Uniq);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MetaTyVar(Uniq);
 
+/// An error.
+#[derive(Debug)]
+pub struct Error {
+  /// The entity.
+  pub entity: Entity,
+  /// The kind.
+  pub kind: ErrorKind,
+}
+
 /// A kind of error.
 #[derive(Debug)]
 pub enum ErrorKind {
   NotPolymorphicEnough(Ty),
+  /// the first is not as polymorphic as the second.
   NotAsPolymorphicAsOther(Ty, Ty),
   CannotUnify(Ty, Ty),
   OccursCheckFailed(Ty, MetaTyVar),
@@ -159,7 +172,7 @@ pub(crate) struct Cx {
   uniq_gen: UniqGen,
   skolem_names: FxHashMap<SkolemTyVar, Name>,
   meta_tys: FxHashMap<MetaTyVar, Tau>,
-  errors: Vec<ErrorKind>,
+  errors: Vec<Error>,
 }
 
 impl Cx {
@@ -201,12 +214,12 @@ impl Cx {
   }
 
   /// Records an error.
-  pub(crate) fn err(&mut self, ek: ErrorKind) {
-    self.errors.push(ek);
+  pub(crate) fn err(&mut self, entity: Entity, kind: ErrorKind) {
+    self.errors.push(Error { entity, kind });
   }
 
   /// Returns the errors.
-  pub(crate) fn finish(self) -> Vec<ErrorKind> {
+  pub(crate) fn finish(self) -> Vec<Error> {
     self.errors
   }
 }
@@ -257,5 +270,5 @@ pub struct Statics {
   /// The type of the expression.
   pub ty: Ty,
   /// The errors.
-  pub errors: Vec<ErrorKind>,
+  pub errors: Vec<Error>,
 }

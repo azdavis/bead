@@ -1,7 +1,8 @@
 //! Operations on [`Ty`]s.
 
 use crate::defs::{
-  BoundTyVar, Cx, ErrorKind as EK, MetaTyVar, Rho, SkolemTyVar, Tau, Ty, TyVar,
+  BoundTyVar, Cx, Entity as E, ErrorKind as EK, MetaTyVar, Rho, SkolemTyVar,
+  Tau, Ty, TyVar,
 };
 use hir::Name;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -203,7 +204,7 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
   }
 }
 
-pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
+pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: &Ty, ty2: &Ty) {
   match (ty1, ty2) {
     // NOTE: this explicitly forbids forall, but the haskell code does not.
     (Ty::TyVar(TyVar::Bound(_)), _)
@@ -214,7 +215,7 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
     }
     (Ty::TyVar(tv1), Ty::TyVar(tv2)) => {
       if tv1 != tv2 {
-        cx.err(EK::CannotUnify(ty1.clone(), ty2.clone()));
+        cx.err(entity, EK::CannotUnify(ty1.clone(), ty2.clone()));
       }
     }
     (Ty::MetaTyVar(tv1), ty2) | (ty2, Ty::MetaTyVar(tv1)) => {
@@ -224,18 +225,18 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
         }
       }
       if let Some(ty1) = cx.get(*tv1).cloned() {
-        return unify(cx, ty1.as_ref(), ty2);
+        return unify(cx, entity, ty1.as_ref(), ty2);
       }
       match ty2 {
         Ty::MetaTyVar(tv2) => match cx.get(*tv2).cloned() {
           None => cx.set(*tv1, Tau::new(ty2.clone())),
-          Some(ty2) => unify(cx, &Ty::MetaTyVar(*tv1), ty2.as_ref()),
+          Some(ty2) => unify(cx, entity, &Ty::MetaTyVar(*tv1), ty2.as_ref()),
         },
         _ => {
           let mut meta_tvs = FxHashSet::default();
           meta_ty_vars(cx, &mut meta_tvs, ty2);
           let t = if meta_tvs.contains(tv1) {
-            cx.err(EK::OccursCheckFailed(ty2.clone(), *tv1));
+            cx.err(entity, EK::OccursCheckFailed(ty2.clone(), *tv1));
             Ty::None
           } else {
             ty2.clone()
@@ -246,17 +247,17 @@ pub(crate) fn unify(cx: &mut Cx, ty1: &Ty, ty2: &Ty) {
     }
     (Ty::Int, Ty::Int) => {}
     (Ty::Fun(arg_ty1, res_ty1), Ty::Fun(arg_ty2, res_ty2)) => {
-      unify(cx, arg_ty1, arg_ty2);
-      unify(cx, res_ty1, res_ty2);
+      unify(cx, entity, arg_ty1, arg_ty2);
+      unify(cx, entity, res_ty1, res_ty2);
     }
     (Ty::None, _) | (_, Ty::None) => {}
     (Ty::Int, _) | (_, Ty::Int) | (Ty::Fun(_, _), _) | (_, Ty::Fun(_, _)) => {
-      cx.err(EK::CannotUnify(ty1.clone(), ty2.clone()));
+      cx.err(entity, EK::CannotUnify(ty1.clone(), ty2.clone()));
     }
   }
 }
 
-pub(crate) fn unify_fn(cx: &mut Cx, ty: &Rho) -> (Ty, Rho) {
+pub(crate) fn unify_fn(cx: &mut Cx, entity: E, ty: &Rho) -> (Ty, Rho) {
   match ty.as_ref() {
     Ty::Fun(arg_ty, res_ty) => {
       ((**arg_ty).clone(), Rho::new((**res_ty).clone()))
@@ -265,7 +266,7 @@ pub(crate) fn unify_fn(cx: &mut Cx, ty: &Rho) -> (Ty, Rho) {
       let arg_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
       let res_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
       let fn_ty = Ty::fun(arg_ty.clone(), res_ty.clone());
-      unify(cx, &fn_ty, ty.as_ref());
+      unify(cx, entity, &fn_ty, ty.as_ref());
       (arg_ty, Rho::new(res_ty))
     }
   }

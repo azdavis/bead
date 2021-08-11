@@ -1,7 +1,7 @@
 //! Typechecking [`Expr`]s.
 
 use crate::defs::Env;
-use crate::defs::{Cx, ErrorKind as EK, Rho, RhoRef, Ty, TyVar};
+use crate::defs::{Cx, Entity as E, ErrorKind as EK, Rho, RhoRef, Ty, TyVar};
 use crate::lower;
 use crate::ty::{
   free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
@@ -52,14 +52,14 @@ fn tc_rho(
       Expected::Check(_) => {}
     },
     // @rule INT
-    Expr::Int(_) => inst_ty(cx, Ty::Int, exp_ty),
+    Expr::Int(_) => inst_ty(cx, E::Expr(expr), Ty::Int, exp_ty),
     // @rule VAR
     Expr::Name(ref name) => {
       let ty = env.get(name).cloned().unwrap_or_else(|| {
-        cx.err(EK::NotInScope(name.clone()));
+        cx.err(E::Expr(expr), EK::NotInScope(name.clone()));
         Ty::None
       });
-      inst_ty(cx, ty, exp_ty)
+      inst_ty(cx, E::Expr(expr), ty, exp_ty)
     }
     Expr::Lam(ref var, body) => match exp_ty {
       // @rule ABS1
@@ -71,7 +71,7 @@ fn tc_rho(
       }
       // @rule ABS2
       Expected::Check(exp_ty) => {
-        let (var_ty, body_ty) = unify_fn(cx, &exp_ty);
+        let (var_ty, body_ty) = unify_fn(cx, E::Expr(expr), &exp_ty);
         let env = env.clone().insert(var.clone(), var_ty);
         check_rho(cx, arenas, &env, body, body_ty);
       }
@@ -87,8 +87,8 @@ fn tc_rho(
       // @rule AABS2
       Expected::Check(exp_ty) => {
         let var_ty = lower::ty(cx, arenas, var_ty);
-        let (arg_ty, body_ty) = unify_fn(cx, &exp_ty);
-        subs_check(cx, arg_ty, var_ty.clone());
+        let (arg_ty, body_ty) = unify_fn(cx, E::Expr(expr), &exp_ty);
+        subs_check(cx, E::Expr(expr), arg_ty, var_ty.clone());
         let env = env.clone().insert(var.clone(), var_ty);
         check_rho(cx, arenas, &env, body, body_ty);
       }
@@ -96,9 +96,9 @@ fn tc_rho(
     // @rule APP
     Expr::App(fun, arg) => {
       let fun_ty = infer_rho(cx, arenas, env, fun);
-      let (arg_ty, res_ty) = unify_fn(cx, &fun_ty);
+      let (arg_ty, res_ty) = unify_fn(cx, E::Expr(expr), &fun_ty);
       check_ty(cx, arenas, env, arg, arg_ty);
-      inst_ty(cx, res_ty.into_inner(), exp_ty);
+      inst_ty(cx, E::Expr(expr), res_ty.into_inner(), exp_ty);
     }
     // @rule LET
     Expr::Let(ref var, rhs, body) => {
@@ -110,7 +110,7 @@ fn tc_rho(
     Expr::Ann(body, ann_ty) => {
       let ann_ty = lower::ty(cx, arenas, ann_ty);
       check_ty(cx, arenas, env, body, ann_ty.clone());
-      inst_ty(cx, ann_ty, exp_ty);
+      inst_ty(cx, E::Expr(expr), ann_ty, exp_ty);
     }
   }
 }
@@ -144,15 +144,15 @@ fn check_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, ty: Ty) {
     .into_iter()
     .any(|skol_tv| env_tvs.contains(&TyVar::Skolem(skol_tv)))
   {
-    cx.err(EK::NotPolymorphicEnough(ty));
+    cx.err(E::Expr(expr), EK::NotPolymorphicEnough(ty));
   }
 }
 
-fn subs_check(cx: &mut Cx, ty1: Ty, ty2: Ty) {
+fn subs_check(cx: &mut Cx, entity: E, ty1: Ty, ty2: Ty) {
   // @rule DEEP-SKOL
   let mut skol_tvs = Vec::new();
   let rho2 = skolemize(cx, &mut skol_tvs, ty2.clone());
-  subs_check_rho(cx, ty1.clone(), rho2);
+  subs_check_rho(cx, entity, ty1.clone(), rho2);
   let mut enc_tvs = FxHashSet::default();
   free_ty_vars(cx, &mut enc_tvs, &ty1);
   free_ty_vars(cx, &mut enc_tvs, &ty2);
@@ -160,44 +160,59 @@ fn subs_check(cx: &mut Cx, ty1: Ty, ty2: Ty) {
     .into_iter()
     .any(|tv| enc_tvs.contains(&TyVar::Skolem(tv)))
   {
-    cx.err(EK::NotAsPolymorphicAsOther(ty1, ty2));
+    cx.err(entity, EK::NotAsPolymorphicAsOther(ty1, ty2));
   }
 }
 
-fn subs_check_rho(cx: &mut Cx, ty: Ty, rho: Rho) {
+fn subs_check_rho(cx: &mut Cx, entity: E, ty: Ty, rho: Rho) {
   match (ty, rho.into_inner()) {
     // @rule SPEC
     (ty @ Ty::ForAll(_, _), rho) => {
       let rho1 = instantiate(cx, ty);
-      subs_check_rho(cx, rho1.into_inner(), Rho::new(rho))
+      subs_check_rho(cx, entity, rho1.into_inner(), Rho::new(rho))
     }
     // @rule FUN
     (rho1, Ty::Fun(arg_ty2, res_ty2)) => {
-      let (arg_ty1, res_ty1) = unify_fn(cx, &Rho::new(rho1));
-      subs_check_fun(cx, arg_ty1, res_ty1, *arg_ty2, Rho::new(*res_ty2));
+      let (arg_ty1, res_ty1) = unify_fn(cx, entity, &Rho::new(rho1));
+      subs_check_fun(
+        cx,
+        entity,
+        arg_ty1,
+        res_ty1,
+        *arg_ty2,
+        Rho::new(*res_ty2),
+      );
     }
     // this one too
     (Ty::Fun(arg_ty1, res_ty1), rho2) => {
-      let (arg_ty2, res_ty2) = unify_fn(cx, &Rho::new(rho2));
-      subs_check_fun(cx, *arg_ty1, Rho::new(*res_ty1), arg_ty2, res_ty2);
+      let (arg_ty2, res_ty2) = unify_fn(cx, entity, &Rho::new(rho2));
+      subs_check_fun(
+        cx,
+        entity,
+        *arg_ty1,
+        Rho::new(*res_ty1),
+        arg_ty2,
+        res_ty2,
+      );
     }
     // @rule MONO
-    (rho1, rho2) => unify(cx, &rho1, &rho2),
+    (rho1, rho2) => unify(cx, entity, &rho1, &rho2),
   }
 }
 
 fn subs_check_fun(
   cx: &mut Cx,
+  entity: E,
   arg_ty1: Ty,
   res_ty1: Rho,
   arg_ty2: Ty,
   res_ty2: Rho,
 ) {
-  subs_check(cx, arg_ty2, arg_ty1);
-  subs_check(cx, res_ty1.into_inner(), res_ty2.into_inner());
+  subs_check(cx, entity, arg_ty2, arg_ty1);
+  subs_check(cx, entity, res_ty1.into_inner(), res_ty2.into_inner());
 }
 
-fn inst_ty(cx: &mut Cx, ty1: Ty, exp_ty: Expected<'_>) {
+fn inst_ty(cx: &mut Cx, entity: E, ty1: Ty, exp_ty: Expected<'_>) {
   match exp_ty {
     // @rule INST1
     Expected::Infer(r) => {
@@ -205,6 +220,6 @@ fn inst_ty(cx: &mut Cx, ty1: Ty, exp_ty: Expected<'_>) {
       r.set(ty);
     }
     // @rule INST2
-    Expected::Check(ty2) => subs_check_rho(cx, ty1, ty2),
+    Expected::Check(ty2) => subs_check_rho(cx, entity, ty1, ty2),
   }
 }
