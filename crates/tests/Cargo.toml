@@ -7,6 +7,7 @@ edition = "2018"
 doctest = false
 
 [dependencies]
+hir = { path = "../hir" }
 lex = { path = "../lex" }
 lower = { path = "../lower" }
 parse = { path = "../parse" }

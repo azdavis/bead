@@ -9,7 +9,7 @@ mod defs;
 mod expr;
 mod ty;
 
-pub use defs::Lower;
+pub use defs::{Lower, Ptrs};
 
 /// Does the lowering.
 pub fn get(root: syntax::ast::Root) -> Lower {
