@@ -7,6 +7,7 @@
 pub use la_arena;
 use la_arena::{Arena, Idx};
 use smol_str::SmolStr;
+use std::fmt;
 
 /// The arenas.
 #[derive(Debug, Default)]
@@ -28,6 +29,12 @@ impl Name {
     S: Into<SmolStr>,
   {
     Self(s.into())
+  }
+}
+
+impl fmt::Display for Name {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.0.as_str())
   }
 }
 

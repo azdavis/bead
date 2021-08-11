@@ -5,6 +5,7 @@ mod entity;
 pub use entity::Entity;
 use hir::Name;
 use rustc_hash::FxHashMap;
+use std::fmt;
 use uniq::{Uniq, UniqGen};
 
 /// A type. "Sigma" in the MSR paper.
@@ -44,6 +45,54 @@ impl Ty {
       Self::ForAll(tvs, Box::new(rho))
     }
   }
+
+  fn fmt_prec(&self, f: &mut fmt::Formatter<'_>, prec: TyPrec) -> fmt::Result {
+    match self {
+      Ty::None => f.write_str("{unknown}"),
+      Ty::ForAll(tvs, ty) => {
+        if prec < TyPrec::A {
+          f.write_str("(")?;
+        }
+        f.write_str("forall")?;
+        for tv in tvs {
+          write!(f, " {}", tv)?;
+        }
+        f.write_str(". ")?;
+        (**ty).as_ref().fmt_prec(f, TyPrec::A)?;
+        if prec < TyPrec::A {
+          f.write_str(")")?;
+        }
+        Ok(())
+      }
+      Ty::Fun(arg, res) => {
+        if prec < TyPrec::A {
+          f.write_str("(")?;
+        }
+        arg.fmt_prec(f, TyPrec::B)?;
+        f.write_str(" -> ")?;
+        res.fmt_prec(f, TyPrec::A)?;
+        if prec < TyPrec::A {
+          f.write_str(")")?;
+        }
+        Ok(())
+      }
+      Ty::Int => f.write_str("Int"),
+      Ty::TyVar(tv) => write!(f, "{}", tv),
+      Ty::MetaTyVar(tv) => write!(f, "{}", tv),
+    }
+  }
+}
+
+impl fmt::Display for Ty {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    self.fmt_prec(f, TyPrec::A)
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum TyPrec {
+  B,
+  A,
 }
 
 /// A [`Ty`] that is not [`Ty::ForAll`] at the top level, but may contain them
@@ -77,6 +126,12 @@ impl Rho {
 impl AsRef<Ty> for Rho {
   fn as_ref(&self) -> &Ty {
     &self.0
+  }
+}
+
+impl fmt::Display for Rho {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    self.0.fmt(f)
   }
 }
 
@@ -123,6 +178,15 @@ pub enum TyVar {
   Skolem(SkolemTyVar),
 }
 
+impl fmt::Display for TyVar {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      TyVar::Bound(tv) => tv.fmt(f),
+      TyVar::Skolem(tv) => tv.fmt(f),
+    }
+  }
+}
+
 /// A type variable bound by a [`Ty::ForAll`]. This is the only kind of type
 /// variable writeable in user code.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -135,15 +199,34 @@ impl BoundTyVar {
   }
 }
 
+impl fmt::Display for BoundTyVar {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    self.0.fmt(f)
+  }
+}
+
 /// A skolem type variable. Not bound a [`Ty::ForAll`]. A constant but unknown
 /// type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SkolemTyVar(Uniq);
 
+impl fmt::Display for SkolemTyVar {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    // TODO show the Uniq?
+    f.write_str("_")
+  }
+}
+
 /// A meta type variable. Not bound a [`Ty::ForAll`]. A placeholder for a
 /// monotype, which is to be determined by type inference.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MetaTyVar(Uniq);
+
+impl fmt::Display for MetaTyVar {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "${}", self.0)
+  }
+}
 
 /// An error.
 #[derive(Debug)]
@@ -164,6 +247,27 @@ pub enum ErrorKind {
   OccursCheckFailed(Ty, MetaTyVar),
   NotInScope(Name),
   InvalidRhoTy,
+}
+
+impl fmt::Display for ErrorKind {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ErrorKind::NotPolymorphicEnough(ty) => {
+        write!(f, "{} is not polymorphic enough", ty)
+      }
+      ErrorKind::NotAsPolymorphicAsOther(ty1, ty2) => {
+        write!(f, "{} is not as polymorphic as {}", ty1, ty2)
+      }
+      ErrorKind::CannotUnify(ty1, ty2) => {
+        write!(f, "mismatched types: cannot unify {} with {}", ty1, ty2)
+      }
+      ErrorKind::OccursCheckFailed(ty, tv) => {
+        write!(f, "type variable {} occurs in {}", tv, ty)
+      }
+      ErrorKind::NotInScope(name) => write!(f, "name {} is not in scope", name),
+      ErrorKind::InvalidRhoTy => write!(f, "invalid rho type"),
+    }
+  }
 }
 
 /// Mutable state updated during typechecking.
