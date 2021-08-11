@@ -5,7 +5,8 @@
 #![deny(rust_2018_idioms)]
 #![deny(unsafe_code)]
 
-use syntax::{SyntaxKind as SK, Token};
+use std::convert::TryInto as _;
+use syntax::{SyntaxKind as SK, TextRange, TextSize, Token};
 
 /// Does the lexing.
 pub fn get(s: &str) -> Lex<'_> {
@@ -40,7 +41,16 @@ pub struct Lex<'a> {
 
 /// An error.
 #[derive(Debug)]
-pub enum Error {
+pub struct Error {
+  /// The range.
+  pub range: TextRange,
+  /// The error kind.
+  pub kind: ErrorKind,
+}
+
+/// An error kind.
+#[derive(Debug)]
+pub enum ErrorKind {
   /// Some source text was invalid.
   InvalidSource,
 }
@@ -88,7 +98,7 @@ fn go(cx: &mut Cx<'_>, b: u8) -> SK {
     cx.i += 1;
     let s = cx.bs.get(start..cx.i);
     if s.map_or(true, |s| std::str::from_utf8(s).is_ok()) {
-      cx.errors.push(Error::InvalidSource);
+      err(cx, start, ErrorKind::InvalidSource);
       return SK::Invalid;
     }
   }
@@ -102,4 +112,19 @@ fn advance_while(cx: &mut Cx<'_>, f: fn(u8) -> bool) {
       break;
     }
   }
+}
+
+fn err(cx: &mut Cx<'_>, start: usize, kind: ErrorKind) {
+  cx.errors.push(Error {
+    range: range(start, cx.i),
+    kind,
+  })
+}
+
+fn range(start: usize, end: usize) -> TextRange {
+  TextRange::new(text_size(start), text_size(end))
+}
+
+fn text_size(n: usize) -> TextSize {
+  n.try_into().expect("n too large for TextSize")
 }
