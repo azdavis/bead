@@ -6,6 +6,7 @@
 #![deny(unsafe_code)]
 
 use std::convert::TryInto as _;
+use std::fmt;
 use syntax::{SyntaxKind as SK, TextRange, TextSize, Token};
 
 /// Does the lexing.
@@ -53,6 +54,14 @@ pub struct Error {
 pub enum ErrorKind {
   /// Some source text was invalid.
   InvalidSource,
+}
+
+impl fmt::Display for ErrorKind {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ErrorKind::InvalidSource => f.write_str("invalid source"),
+    }
+  }
 }
 
 #[derive(Debug)]
