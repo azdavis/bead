@@ -1,4 +1,4 @@
-//! High-level Intermediate Representation.
+//! High-level intermediate representation.
 
 #![deny(missing_debug_implementations)]
 #![deny(rust_2018_idioms)]
