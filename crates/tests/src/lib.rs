@@ -64,3 +64,9 @@ fn not_in_scope() {
 fn bad_app() {
   check("3 3");
 }
+
+#[test]
+#[should_panic = "statics err"]
+fn bad_rho_ty() {
+  check("fn x: (forall a. forall b. a). x");
+}
