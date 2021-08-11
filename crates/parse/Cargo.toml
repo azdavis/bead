@@ -8,5 +8,5 @@ doctest = false
 test = false
 
 [dependencies]
-event-parse = { git = "https://github.com/azdavis/language-server-util.git" }
+event-parse = { git = "https://github.com/azdavis/language-util.git" }
 syntax = { path = "../syntax" }

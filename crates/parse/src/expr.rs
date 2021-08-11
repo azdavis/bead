@@ -8,7 +8,7 @@ pub(crate) fn expr(p: &mut Parser<'_, SK>) {
   let mut ex = match expr_hd_opt(p) {
     Some(x) => x,
     None => {
-      p.error();
+      p.error("expected an expression");
       return;
     }
   };

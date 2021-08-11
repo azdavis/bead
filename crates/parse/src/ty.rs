@@ -26,7 +26,7 @@ pub(crate) fn ty(p: &mut Parser<'_, SK>) {
     SK::NameTy
   } else {
     p.abandon(en);
-    p.error();
+    p.error("expected a type");
     return;
   };
   let ex = p.exit(en, kind);

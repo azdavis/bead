@@ -36,5 +36,5 @@ pub struct Parse {
   /// The root.
   pub root: Root,
   /// The errors.
-  pub errors: Vec<Error<SK>>,
+  pub errors: Vec<Error>,
 }

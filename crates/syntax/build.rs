@@ -1,5 +1,6 @@
-use identifier_case::snake_to_pascal;
-use syntax_gen::{gen, TokenKind};
+use syntax_gen::{
+  char_name::get, gen, identifier_case::snake_to_pascal, TokenKind,
+};
 
 fn main() -> std::io::Result<()> {
   gen(
@@ -18,11 +19,7 @@ fn main() -> std::io::Result<()> {
           s.push_str("Kw");
           (TokenKind::Keyword, s)
         } else {
-          let mut s = String::new();
-          for c in tok.chars() {
-            s.push_str(char_name::get(c));
-          }
-          (TokenKind::Punctuation, s)
+          (TokenKind::Punctuation, tok.chars().map(get).collect())
         }
       }
     },
