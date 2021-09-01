@@ -70,3 +70,21 @@ fn bad_app() {
 fn bad_rho_ty() {
   check("fn x: (forall a. forall b. a). x");
 }
+
+#[test]
+#[should_panic = "lex err"]
+fn smoke_lex() {
+  check("あ");
+}
+
+#[test]
+#[should_panic = "parse err"]
+fn smoke_parse() {
+  check("(");
+}
+
+#[test]
+#[should_panic = "statics err"]
+fn occurs_check() {
+  check("fn f. f f");
+}
