@@ -48,7 +48,7 @@ impl Ty {
 
   fn fmt_prec(&self, f: &mut fmt::Formatter<'_>, prec: TyPrec) -> fmt::Result {
     match self {
-      Ty::None => f.write_str("{unknown}"),
+      Ty::None => f.write_str("_"),
       Ty::ForAll(tvs, ty) => {
         if prec < TyPrec::A {
           f.write_str("(")?;
