@@ -1,6 +1,6 @@
 /.vscode/cspell.json
+/Cargo.lock
 /crates/syntax/src/ast.rs
 /crates/syntax/src/kind.rs
 /sandbox
 /target
-Cargo.lock
