@@ -96,11 +96,12 @@ fn go(cx: &mut Cx<'_>, b: u8) -> SK {
     return SK::keyword(&cx.bs[start..cx.i]).unwrap_or(SK::Name);
   }
   // punctuation
-  for &(tok_bs, tok) in SK::PUNCTUATION.iter() {
-    if cx.bs.get(cx.i..cx.i + tok_bs.len()) == Some(tok_bs) {
-      cx.i += tok_bs.len();
-      return tok;
-    }
+  if let Some(&(tok_bs, tok)) = SK::PUNCTUATION
+    .iter()
+    .find(|&&(tok_bs, _)| cx.bs.get(cx.i..cx.i + tok_bs.len()) == Some(tok_bs))
+  {
+    cx.i += tok_bs.len();
+    return tok;
   }
   // invalid
   let start = cx.i;
