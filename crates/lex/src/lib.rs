@@ -85,6 +85,7 @@ fn go(cx: &mut Cx<'_>, b: u8) -> SK {
   }
   // integers
   if b.is_ascii_digit() {
+    cx.i += 1;
     advance_while(cx, |b| b.is_ascii_digit());
     return SK::IntLit;
   }
