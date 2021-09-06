@@ -38,6 +38,9 @@ impl fmt::Display for Name {
   }
 }
 
+pub type ExprIdx = Idx<Expr>;
+pub type ExprArena = Arena<Expr>;
+
 /// An expression.
 #[derive(Debug)]
 pub enum Expr {
@@ -62,8 +65,8 @@ pub enum Expr {
   Ann(ExprIdx, TyIdx),
 }
 
-pub type ExprIdx = Idx<Expr>;
-pub type ExprArena = Arena<Expr>;
+pub type TyIdx = Idx<Ty>;
+pub type TyArena = Arena<Ty>;
 
 /// A type. "Sigma" in the MSR paper.
 #[derive(Debug)]
@@ -81,6 +84,3 @@ pub enum Ty {
   /// Variable.
   Name(Name),
 }
-
-pub type TyIdx = Idx<Ty>;
-pub type TyArena = Arena<Ty>;
