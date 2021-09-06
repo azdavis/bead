@@ -3,6 +3,7 @@ Root = Expr*
 Expr =
   ParenExpr
 | IntExpr
+| StrExpr
 | NameExpr
 | LamExpr
 | ALamExpr
@@ -12,6 +13,7 @@ Expr =
 
 ParenExpr = '(' Expr ')'
 IntExpr = 'IntLit'
+StrExpr = 'StrLit'
 NameExpr = 'Name'
 LamExpr = 'fn' 'Name' '.' Expr
 ALamExpr = 'fn' 'Name' ':' Ty '.' Expr
@@ -22,12 +24,14 @@ AnnExpr = Expr ':' Ty
 Ty =
   ParenTy
 | IntTy
+| StrTy
 | NameTy
 | ForAllTy
 | FnTy
 
 ParenTy = '(' Ty ')'
 IntTy = 'Int'
+StrTy = 'Str'
 NameTy = 'Name'
 ForAllTy = 'forall' 'Name'* '.' Ty
 FnTy = lhs:Ty '->' rhs:Ty

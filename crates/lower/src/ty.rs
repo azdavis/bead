@@ -15,6 +15,7 @@ fn get_(cx: &mut Cx, ty: Option<Ty>) -> Option<hir::Ty> {
   let ret = match ty? {
     Ty::ParenTy(ty) => get_(cx, ty.ty())?,
     Ty::IntTy(_) => hir::Ty::Int,
+    Ty::StrTy(_) => hir::Ty::Str,
     Ty::NameTy(ty) => hir::Ty::Name(Name::new(ty.name()?.text())),
     Ty::ForAllTy(ty) => {
       let tvs: Vec<_> = ty.names().map(|tok| Name::new(tok.text())).collect();

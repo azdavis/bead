@@ -11,6 +11,7 @@ fn main() -> std::io::Result<()> {
       .expect("ungram parse error"),
     |tok| match tok {
       "IntLit" => (TokenKind::Special("an integer literal"), tok.to_owned()),
+      "StrLit" => (TokenKind::Special("a string literal"), tok.to_owned()),
       "Name" => (TokenKind::Special("a name"), tok.to_owned()),
       "->" => (TokenKind::Punctuation, "Arrow".to_owned()),
       _ => {

@@ -31,7 +31,7 @@ pub(crate) fn meta_ty_vars(
       }
       Some(ty) => meta_ty_vars(cx, ac, ty.as_ref()),
     },
-    Ty::None | Ty::Int | Ty::TyVar(_) => {}
+    Ty::None | Ty::Int | Ty::Str | Ty::TyVar(_) => {}
   }
 }
 
@@ -59,7 +59,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
       None => {}
       Some(ty) => free_ty_vars(cx, ac, ty.as_ref()),
     },
-    Ty::None | Ty::Int => {}
+    Ty::None | Ty::Int | Ty::Str => {}
   }
 }
 
@@ -78,7 +78,7 @@ fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
       bound_ty_vars(ac, arg_ty);
       bound_ty_vars(ac, res_ty);
     }
-    Ty::None | Ty::Int | Ty::TyVar(_) | Ty::MetaTyVar(_) => {}
+    Ty::None | Ty::Int | Ty::Str | Ty::TyVar(_) | Ty::MetaTyVar(_) => {}
   }
 }
 
@@ -106,6 +106,7 @@ fn subst(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
     },
     Ty::None => Ty::None,
     Ty::Int => Ty::Int,
+    Ty::Str => Ty::Str,
     Ty::MetaTyVar(tv) => Ty::MetaTyVar(tv),
   }
 }
@@ -200,6 +201,7 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
     },
     Ty::None => Ty::None,
     Ty::Int => Ty::Int,
+    Ty::Str => Ty::Str,
     Ty::TyVar(tv) => Ty::TyVar(tv),
   }
 }
@@ -246,12 +248,18 @@ pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: &Ty, ty2: &Ty) {
       }
     }
     (Ty::Int, Ty::Int) => {}
+    (Ty::Str, Ty::Str) => {}
     (Ty::Fun(arg_ty1, res_ty1), Ty::Fun(arg_ty2, res_ty2)) => {
       unify(cx, entity, arg_ty1, arg_ty2);
       unify(cx, entity, res_ty1, res_ty2);
     }
     (Ty::None, _) | (_, Ty::None) => {}
-    (Ty::Int, _) | (_, Ty::Int) | (Ty::Fun(_, _), _) | (_, Ty::Fun(_, _)) => {
+    (Ty::Int, _)
+    | (_, Ty::Int)
+    | (Ty::Str, _)
+    | (_, Ty::Str)
+    | (Ty::Fun(_, _), _)
+    | (_, Ty::Fun(_, _)) => {
       cx.err(entity, EK::CannotUnify(ty1.clone(), ty2.clone()));
     }
   }

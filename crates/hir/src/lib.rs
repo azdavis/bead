@@ -45,6 +45,8 @@ pub enum Expr {
   None,
   /// Integer literal.
   Int(i32),
+  /// String literal.
+  Str(String),
   /// Variable.
   Name(Name),
   /// Lambda, a function literal.
@@ -74,6 +76,8 @@ pub enum Ty {
   Fun(TyIdx, TyIdx),
   /// Integer.
   Int,
+  /// String.
+  Str,
   /// Variable.
   Name(Name),
 }

@@ -12,6 +12,15 @@ fn int_lit() {
 }
 
 #[test]
+fn str_lit() {
+  check(
+    r#"
+"foo bar" : Str
+  "#,
+  );
+}
+
+#[test]
 fn id_regular() {
   check("(fn x. x) : forall a. a -> a");
 }

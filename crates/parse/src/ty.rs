@@ -21,6 +21,9 @@ pub(crate) fn ty(p: &mut Parser<'_, SK>) {
   } else if p.at(SK::IntKw) {
     p.bump();
     SK::IntTy
+  } else if p.at(SK::StrKw) {
+    p.bump();
+    SK::StrTy
   } else if p.at(SK::Name) {
     p.bump();
     SK::NameTy

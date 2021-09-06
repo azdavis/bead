@@ -52,6 +52,8 @@ pub struct Error {
 /// An error kind.
 #[derive(Debug)]
 pub enum ErrorKind {
+  /// Unclosed string literal.
+  UnclosedStrLit,
   /// Some source text was invalid.
   InvalidSource,
 }
@@ -59,6 +61,7 @@ pub enum ErrorKind {
 impl fmt::Display for ErrorKind {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
+      ErrorKind::UnclosedStrLit => f.write_str("unclosed string literal"),
       ErrorKind::InvalidSource => f.write_str("invalid source"),
     }
   }
@@ -88,6 +91,27 @@ fn go(cx: &mut Cx<'_>, b: u8) -> SK {
     cx.i += 1;
     advance_while(cx, |b| b.is_ascii_digit() || b == b'_');
     return SK::IntLit;
+  }
+  // strings
+  if b == b'"' {
+    let start = cx.i;
+    cx.i += 1;
+    loop {
+      let b = cx.bs.get(cx.i);
+      cx.i += 1;
+      match b {
+        None => {
+          err(cx, start, ErrorKind::UnclosedStrLit);
+          break;
+        }
+        Some(&b) => {
+          if b == b'"' {
+            break;
+          }
+        }
+      }
+    }
+    return SK::StrLit;
   }
   // keywords, names
   if b.is_ascii_alphabetic() {

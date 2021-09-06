@@ -23,6 +23,7 @@ pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> defs::Ty {
       defs::Ty::fun(arg, res)
     }
     Ty::Int => defs::Ty::Int,
+    Ty::Str => defs::Ty::Str,
     Ty::Name(ref name) => {
       defs::Ty::TyVar(TyVar::Bound(BoundTyVar::new(name.clone())))
     }

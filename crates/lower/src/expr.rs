@@ -16,6 +16,7 @@ fn get_(cx: &mut Cx, expr: Expr) -> Option<hir::Expr> {
   let ret = match expr {
     Expr::ParenExpr(expr) => get_(cx, expr.expr()?)?,
     Expr::IntExpr(expr) => hir::Expr::Int(expr.int_lit()?.text().parse().ok()?),
+    Expr::StrExpr(expr) => hir::Expr::Str(expr.str_lit()?.text().to_owned()),
     Expr::NameExpr(expr) => hir::Expr::Name(Name::new(expr.name()?.text())),
     Expr::LamExpr(expr) => {
       let var = Name::new(expr.name()?.text());

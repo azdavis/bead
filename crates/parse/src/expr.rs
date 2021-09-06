@@ -38,6 +38,9 @@ fn expr_hd_opt(p: &mut Parser<'_, SK>) -> Option<Exited> {
   } else if p.at(SK::IntLit) {
     p.bump();
     SK::IntExpr
+  } else if p.at(SK::StrLit) {
+    p.bump();
+    SK::StrExpr
   } else if p.at(SK::FnKw) {
     p.bump();
     p.eat(SK::Name);

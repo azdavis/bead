@@ -24,6 +24,8 @@ pub enum Ty {
   Fun(Box<Ty>, Box<Ty>),
   /// Integer.
   Int,
+  /// String.
+  Str,
   /// Type variables.
   TyVar(TyVar),
   /// Meta type variables.
@@ -77,6 +79,7 @@ impl Ty {
         Ok(())
       }
       Ty::Int => f.write_str("Int"),
+      Ty::Str => f.write_str("Str"),
       Ty::TyVar(tv) => write!(f, "{}", tv),
       Ty::MetaTyVar(tv) => write!(f, "{}", tv),
     }
@@ -153,7 +156,7 @@ impl Tau {
       Ty::Fun(arg_ty, res_ty) => {
         Self::is_valid(arg_ty) && Self::is_valid(res_ty)
       }
-      Ty::None | Ty::Int | Ty::TyVar(_) | Ty::MetaTyVar(_) => true,
+      Ty::None | Ty::Int | Ty::Str | Ty::TyVar(_) | Ty::MetaTyVar(_) => true,
     }
   }
 

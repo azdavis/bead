@@ -53,6 +53,8 @@ fn tc_rho(
     },
     // @rule INT
     Expr::Int(_) => inst_ty(cx, E::Expr(expr), Ty::Int, exp_ty),
+    // no rule, but similar to INT
+    Expr::Str(_) => inst_ty(cx, E::Expr(expr), Ty::Str, exp_ty),
     // @rule VAR
     Expr::Name(ref name) => {
       let ty = env.get(name).cloned().unwrap_or_else(|| {
