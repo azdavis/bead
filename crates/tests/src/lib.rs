@@ -2,9 +2,9 @@
 
 #![cfg(test)]
 
-mod support;
+mod defs;
 
-use support::check;
+use defs::check;
 
 #[test]
 fn int_lit() {
