@@ -10,7 +10,6 @@ mod ty;
 
 use event_parse::rowan_sink::{Error, RowanSink};
 use event_parse::Parser;
-use std::convert::TryFrom;
 use syntax::{ast::Root, SyntaxKind as SK, Token};
 
 /// Does the parsing.

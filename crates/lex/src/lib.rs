@@ -5,7 +5,6 @@
 #![deny(rust_2018_idioms)]
 #![deny(unsafe_code)]
 
-use std::convert::TryInto as _;
 use std::fmt;
 use syntax::{SyntaxKind as SK, TextRange, TextSize, Token};
 

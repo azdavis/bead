@@ -1,7 +1,7 @@
 [package]
 name = "syntax"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 [lib]
 doctest = false
@@ -9,7 +9,7 @@ test = false
 
 [dependencies]
 ast-ptr = { git = "https://github.com/azdavis/language-util.git" }
-rowan = "0.12"
+rowan = "0.14"
 token = { git = "https://github.com/azdavis/language-util.git" }
 
 [build-dependencies]
