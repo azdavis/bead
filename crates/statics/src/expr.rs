@@ -22,7 +22,7 @@ pub(crate) fn infer_ty_zonk(
 
 /// The direction of typechecking.
 #[derive(Debug)]
-enum Expected<'a> {
+enum Mode<'a> {
   /// Extract a type *up* from an expression and store it in the [`RhoRef`].
   Infer(&'a mut RhoRef),
   /// Push a type *down* into an expression.
@@ -31,25 +31,25 @@ enum Expected<'a> {
 
 fn infer_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Rho {
   let mut ret = RhoRef::default();
-  tc_rho(cx, arenas, env, Expected::Infer(&mut ret), expr);
+  tc_rho(cx, arenas, env, Mode::Infer(&mut ret), expr);
   ret.expect("the RhoRef should be set")
 }
 
 fn check_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, rho: Rho) {
-  tc_rho(cx, arenas, env, Expected::Check(rho), expr)
+  tc_rho(cx, arenas, env, Mode::Check(rho), expr)
 }
 
 fn tc_rho(
   cx: &mut Cx,
   arenas: &Arenas,
   env: &Env,
-  exp_ty: Expected<'_>,
+  exp_ty: Mode<'_>,
   expr: ExprIdx,
 ) {
   match arenas.expr[expr] {
     Expr::None => match exp_ty {
-      Expected::Infer(exp_ty) => exp_ty.set(Rho::new(Ty::None)),
-      Expected::Check(_) => {}
+      Mode::Infer(exp_ty) => exp_ty.set(Rho::new(Ty::None)),
+      Mode::Check(_) => {}
     },
     // @rule INT
     Expr::Int(_) => inst_ty(cx, E::Expr(expr), Ty::Int, exp_ty),
@@ -65,14 +65,14 @@ fn tc_rho(
     }
     Expr::Lam(ref var, body) => match exp_ty {
       // @rule ABS1
-      Expected::Infer(exp_ty) => {
+      Mode::Infer(exp_ty) => {
         let var_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
         let env = env.clone().insert(var.clone(), var_ty.clone());
         let body_ty = infer_rho(cx, arenas, &env, body);
         exp_ty.set(Rho::new(Ty::fun(var_ty, body_ty.into_inner())));
       }
       // @rule ABS2
-      Expected::Check(exp_ty) => {
+      Mode::Check(exp_ty) => {
         let (var_ty, body_ty) = unify_fn(cx, E::Expr(expr), &exp_ty);
         let env = env.clone().insert(var.clone(), var_ty);
         check_rho(cx, arenas, &env, body, body_ty);
@@ -80,14 +80,14 @@ fn tc_rho(
     },
     Expr::ALam(ref var, var_ty, body) => match exp_ty {
       // @rule AABS1
-      Expected::Infer(exp_ty) => {
+      Mode::Infer(exp_ty) => {
         let var_ty = lower::ty(cx, arenas, var_ty);
         let env = env.clone().insert(var.clone(), var_ty.clone());
         let body_ty = infer_rho(cx, arenas, &env, body);
         exp_ty.set(Rho::new(Ty::fun(var_ty, body_ty.into_inner())));
       }
       // @rule AABS2
-      Expected::Check(exp_ty) => {
+      Mode::Check(exp_ty) => {
         let var_ty = lower::ty(cx, arenas, var_ty);
         let (arg_ty, body_ty) = unify_fn(cx, E::Expr(expr), &exp_ty);
         subs_check(cx, E::Expr(expr), arg_ty, var_ty.clone());
@@ -214,14 +214,14 @@ fn subs_check_fun(
   subs_check(cx, entity, res_ty1.into_inner(), res_ty2.into_inner());
 }
 
-fn inst_ty(cx: &mut Cx, entity: E, ty1: Ty, exp_ty: Expected<'_>) {
+fn inst_ty(cx: &mut Cx, entity: E, ty1: Ty, exp_ty: Mode<'_>) {
   match exp_ty {
     // @rule INST1
-    Expected::Infer(r) => {
+    Mode::Infer(r) => {
       let ty = instantiate(cx, ty1);
       r.set(ty);
     }
     // @rule INST2
-    Expected::Check(ty2) => subs_check_rho(cx, entity, ty1, ty2),
+    Mode::Check(ty2) => subs_check_rho(cx, entity, ty1, ty2),
   }
 }
