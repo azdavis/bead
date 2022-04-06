@@ -1,13 +1,13 @@
 use crate::defs::Lower as Cx;
 use crate::ty;
 use hir::Name;
-use syntax::{ast::Expr, AstPtr};
+use syntax::ast::{AstPtr, Expr};
 
 pub(crate) fn get(cx: &mut Cx, expr: Expr) -> hir::ExprIdx {
   let ptr = AstPtr::new(&expr);
   let hir_expr = get_(cx, expr).unwrap_or(hir::Expr::None);
   let ret = cx.arenas.expr.alloc(hir_expr);
-  cx.ptrs.expr_fwd.insert(ret, ptr);
+  cx.ptrs.expr_fwd.insert(ret, ptr.clone());
   cx.ptrs.expr_back.insert(ptr, ret);
   ret
 }

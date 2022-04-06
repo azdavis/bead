@@ -1,12 +1,12 @@
 use crate::defs::Lower as Cx;
 use hir::Name;
-use syntax::{ast::Ty, AstPtr};
+use syntax::ast::{AstPtr, Ty};
 
 pub(crate) fn get(cx: &mut Cx, ty: Ty) -> hir::TyIdx {
   let ptr = AstPtr::new(&ty);
   let hir_ty = get_(cx, Some(ty)).unwrap_or(hir::Ty::None);
   let ret = cx.arenas.ty.alloc(hir_ty);
-  cx.ptrs.ty_fwd.insert(ret, ptr);
+  cx.ptrs.ty_fwd.insert(ret, ptr.clone());
   cx.ptrs.ty_back.insert(ptr, ret);
   ret
 }

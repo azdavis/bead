@@ -10,7 +10,8 @@ mod ty;
 
 use event_parse::rowan_sink::{Error, RowanSink};
 use event_parse::Parser;
-use syntax::{ast::Root, SyntaxKind as SK, Token};
+use syntax::ast::{AstNode as _, Root};
+use syntax::{SyntaxKind as SK, Token};
 
 /// Does the parsing.
 pub fn get(tokens: &[Token<'_, SK>]) -> Parse {
@@ -24,7 +25,7 @@ pub fn get(tokens: &[Token<'_, SK>]) -> Parse {
   p.finish(&mut sink);
   let (node, errors) = sink.finish();
   Parse {
-    root: Root::try_from(node).expect("there is exactly one root"),
+    root: Root::cast(node).expect("there is exactly one root"),
     errors,
   }
 }

@@ -1,8 +1,7 @@
 use hir::la_arena::ArenaMap;
 use hir::{Arenas, ExprIdx, TyIdx};
 use rustc_hash::FxHashMap;
-use syntax::ast::{Expr, Ty};
-use syntax::AstPtr;
+use syntax::ast::{AstPtr, Expr, Ty};
 
 /// The result of lowering.
 #[derive(Debug, Default)]
