@@ -1,12 +1,16 @@
 //! Definitions of data types.
 
-mod entity;
-
-pub use entity::Entity;
-use hir::Name;
+use hir::{ExprIdx, Name, TyIdx};
 use rustc_hash::FxHashMap;
 use std::fmt;
 use uniq::{Uniq, UniqGen};
+
+/// An entity that can be given an error.
+#[derive(Debug, Clone, Copy)]
+pub enum Entity {
+  Expr(ExprIdx),
+  Ty(TyIdx),
+}
 
 /// A type. "Sigma" in the MSR paper.
 #[derive(Debug, Clone)]
