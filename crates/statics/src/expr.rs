@@ -30,16 +30,19 @@ enum Mode<'a> {
   Check(Rho),
 }
 
+/// infers (synthesizes) a rho type for `expr` under `env`.
 fn infer_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Rho {
   let mut r = RhoRef::default();
   tc_rho(cx, arenas, env, Mode::Infer(&mut r), expr);
   r.expect("the RhoRef should be set")
 }
 
+/// checks `expr` has the `rho` type under `env`.
 fn check_rho(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, rho: Rho) {
   tc_rho(cx, arenas, env, Mode::Check(rho), expr)
 }
 
+/// the main typechecking algorithm.
 fn tc_rho(
   cx: &mut Cx,
   arenas: &Arenas,
@@ -118,6 +121,7 @@ fn tc_rho(
   }
 }
 
+/// infer a rho type for `expr`, then generalize it to a forall.
 fn infer_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Ty {
   // @rule GEN1
   let mode = infer_rho(cx, arenas, env, expr);
@@ -133,6 +137,7 @@ fn infer_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Ty {
   quantify(cx, &res_tvs, mode)
 }
 
+/// check the `expr` has the `ty` under `env`.
 fn check_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, ty: Ty) {
   // @rule GEN2
   let mut skol_tvs = Vec::new();
@@ -151,6 +156,7 @@ fn check_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx, ty: Ty) {
   }
 }
 
+/// checks that `ty1` is at least as polymorphic as `ty2`.
 fn subs_check(cx: &mut Cx, entity: E, ty1: Ty, ty2: Ty) {
   // @rule DEEP-SKOL
   let mut skol_tvs = Vec::new();
@@ -167,6 +173,7 @@ fn subs_check(cx: &mut Cx, entity: E, ty1: Ty, ty2: Ty) {
   }
 }
 
+/// checks that `ty` is at least as polymorphic as `rho`.
 fn subs_check_rho(cx: &mut Cx, entity: E, ty: Ty, rho: Rho) {
   match (ty, rho.into_inner()) {
     // @rule SPEC
@@ -203,6 +210,8 @@ fn subs_check_rho(cx: &mut Cx, entity: E, ty: Ty, rho: Rho) {
   }
 }
 
+/// check that `arg_ty1 -> res_ty1` is at least as polymorphic as `arg_ty2 ->
+/// res_ty2`.
 fn subs_check_fun(
   cx: &mut Cx,
   entity: E,

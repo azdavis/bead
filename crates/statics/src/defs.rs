@@ -221,7 +221,8 @@ impl fmt::Display for BoundTyVar {
 }
 
 /// A skolem type variable. Not bound a [`Ty::ForAll`]. A constant but unknown
-/// type.
+/// type. Used to determine whether one type is at least as polymorphic as
+/// another type ("subsumption").
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SkolemTyVar(Uniq);
 

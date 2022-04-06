@@ -153,8 +153,8 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
   }
 }
 
-/// replaces all meta type variables with new bound type variables, and binds
-/// them with a top-level forall.
+/// replaces the meta type variables in `set` with new bound type variables, and
+/// binds them with a top-level forall. this returns a type already `subst`'d.
 pub(crate) fn quantify(
   cx: &mut Cx,
   set: &FxHashSet<MetaTyVar>,
