@@ -76,7 +76,11 @@ fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
   }
 }
 
-/// this must not induce capture.
+/// replaces the bound ty vars with their corresponding ty in the given ty.
+/// takes into account the fact that forall inside the ty prevent substitution
+/// because they are binders.
+///
+/// the caller must arrange so that this does not induce capture.
 fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: &mut Ty) {
   match ty {
     Ty::ForAll(tvs, ty) => {
