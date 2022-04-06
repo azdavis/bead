@@ -1,31 +1,31 @@
 use crate::defs::{
-  self, BoundTyVar, Cx, Entity as E, ErrorKind as EK, Rho, TyVar,
+  BoundTyVar, Cx, Entity as E, ErrorKind as EK, Rho, Ty, TyVar,
 };
-use hir::{Arenas, Ty, TyIdx};
+use hir::{Arenas, TyIdx};
 
-pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> defs::Ty {
+pub(crate) fn ty(cx: &mut Cx, arenas: &Arenas, ty_idx: TyIdx) -> Ty {
   match arenas.ty[ty_idx] {
-    Ty::None => defs::Ty::None,
-    Ty::ForAll(ref tvs, t) => {
+    hir::Ty::None => Ty::None,
+    hir::Ty::ForAll(ref tvs, t) => {
       let tvs: Vec<_> = tvs
         .iter()
         .map(|name| BoundTyVar::new(name.clone()))
         .collect();
       let t = Rho::new_opt(ty(cx, arenas, t)).unwrap_or_else(|| {
         cx.err(E::Ty(t), EK::InvalidRhoTy);
-        Rho::new(defs::Ty::None)
+        Rho::new(Ty::None)
       });
-      defs::Ty::for_all(tvs, t)
+      Ty::for_all(tvs, t)
     }
-    Ty::Fun(arg, res) => {
+    hir::Ty::Fun(arg, res) => {
       let arg = ty(cx, arenas, arg);
       let res = ty(cx, arenas, res);
-      defs::Ty::fun(arg, res)
+      Ty::fun(arg, res)
     }
-    Ty::Int => defs::Ty::Int,
-    Ty::Str => defs::Ty::Str,
-    Ty::Name(ref name) => {
-      defs::Ty::TyVar(TyVar::Bound(BoundTyVar::new(name.clone())))
+    hir::Ty::Int => Ty::Int,
+    hir::Ty::Str => Ty::Str,
+    hir::Ty::Name(ref name) => {
+      Ty::TyVar(TyVar::Bound(BoundTyVar::new(name.clone())))
     }
   }
 }
