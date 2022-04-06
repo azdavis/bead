@@ -179,28 +179,14 @@ fn subs_check_rho(cx: &mut Cx, entity: E, ty: Ty, rho: Rho) {
       subs_check_rho(cx, entity, rho1.into_inner(), Rho::new(rho))
     }
     // @rule FUN
-    (rho1, Ty::Fun(arg_ty2, res_ty2)) => {
-      let (arg_ty1, res_ty1) = unify_fn(cx, entity, &Rho::new(rho1));
-      subs_check_fun(
-        cx,
-        entity,
-        arg_ty1,
-        res_ty1,
-        *arg_ty2,
-        Rho::new(*res_ty2),
-      );
+    (rho1, Ty::Fun(a2, r2)) => {
+      let (a1, r1) = unify_fn(cx, entity, &Rho::new(rho1));
+      subs_check_fun(cx, entity, a1, r1, *a2, Rho::new(*r2));
     }
     // this one too
-    (Ty::Fun(arg_ty1, res_ty1), rho2) => {
-      let (arg_ty2, res_ty2) = unify_fn(cx, entity, &Rho::new(rho2));
-      subs_check_fun(
-        cx,
-        entity,
-        *arg_ty1,
-        Rho::new(*res_ty1),
-        arg_ty2,
-        res_ty2,
-      );
+    (Ty::Fun(a1, r1), rho2) => {
+      let (a2, r2) = unify_fn(cx, entity, &Rho::new(rho2));
+      subs_check_fun(cx, entity, *a1, Rho::new(*r1), a2, r2);
     }
     // @rule MONO
     (rho1, rho2) => unify(cx, entity, &rho1, &rho2),
@@ -209,16 +195,9 @@ fn subs_check_rho(cx: &mut Cx, entity: E, ty: Ty, rho: Rho) {
 
 /// check that `arg_ty1 -> res_ty1` is at least as polymorphic as `arg_ty2 ->
 /// res_ty2`.
-fn subs_check_fun(
-  cx: &mut Cx,
-  entity: E,
-  arg_ty1: Ty,
-  res_ty1: Rho,
-  arg_ty2: Ty,
-  res_ty2: Rho,
-) {
-  subs_check(cx, entity, arg_ty2, arg_ty1);
-  subs_check(cx, entity, res_ty1.into_inner(), res_ty2.into_inner());
+fn subs_check_fun(cx: &mut Cx, entity: E, a1: Ty, r1: Rho, a2: Ty, r2: Rho) {
+  subs_check(cx, entity, a2, a1);
+  subs_check(cx, entity, r1.into_inner(), r2.into_inner());
 }
 
 fn inst_ty(cx: &mut Cx, entity: E, ty: Ty, mode: Mode<'_>) {
