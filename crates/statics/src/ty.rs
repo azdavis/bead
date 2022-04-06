@@ -81,10 +81,10 @@ fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
   match ty {
     Ty::ForAll(tvs, ty) => {
       let mut map = map.clone();
-      for tv in tvs {
-        map.remove(&tv);
+      for tv in tvs.iter() {
+        map.remove(tv);
       }
-      subst_bound_tv(&map, ty.into_inner())
+      Ty::for_all(tvs, Rho::new(subst_bound_tv(&map, ty.into_inner())))
     }
     Ty::Fun(arg_ty, res_ty) => {
       let arg_ty = subst_bound_tv(map, *arg_ty);
