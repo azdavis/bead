@@ -77,31 +77,27 @@ fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
 }
 
 /// this must not induce capture.
-fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
+fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: &mut Ty) {
   match ty {
     Ty::ForAll(tvs, ty) => {
       let mut map = map.clone();
       for tv in tvs.iter() {
         map.remove(tv);
       }
-      Ty::for_all(tvs, Rho::new(subst_bound_tv(&map, ty.into_inner())))
+      ty.use_mut(|ty| subst_bound_tv(&map, ty));
     }
     Ty::Fun(arg_ty, res_ty) => {
-      let arg_ty = subst_bound_tv(map, *arg_ty);
-      let res_ty = subst_bound_tv(map, *res_ty);
-      Ty::fun(arg_ty, res_ty)
+      subst_bound_tv(map, arg_ty);
+      subst_bound_tv(map, res_ty);
     }
     Ty::TyVar(tv) => match tv {
-      TyVar::Bound(tv) => match map.get(&tv) {
-        None => Ty::TyVar(TyVar::Bound(tv)),
-        Some(ty) => ty.clone(),
+      TyVar::Bound(tv) => match map.get(tv) {
+        None => {}
+        Some(got_ty) => *ty = got_ty.clone(),
       },
-      TyVar::Skolem(tv) => Ty::TyVar(TyVar::Skolem(tv)),
+      TyVar::Skolem(_) => {}
     },
-    Ty::None => Ty::None,
-    Ty::Int => Ty::Int,
-    Ty::Str => Ty::Str,
-    Ty::MetaTyVar(tv) => Ty::MetaTyVar(tv),
+    Ty::None | Ty::Int | Ty::Str | Ty::MetaTyVar(_) => {}
   }
 }
 
@@ -109,13 +105,14 @@ fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
 /// by those forall with new meta type variables.
 pub(crate) fn instantiate(cx: &mut Cx, ty: Ty) -> Rho {
   match ty {
-    Ty::ForAll(tvs, ty) => {
+    Ty::ForAll(tvs, mut ty) => {
       let map: FxHashMap<_, _> = tvs
         .into_iter()
         .map(|tv| (tv, Ty::MetaTyVar(cx.new_meta_ty_var())))
         .collect();
       // no capture because MetaTyVars cannot be bound and they are all new.
-      Rho::new(subst_bound_tv(&map, ty.into_inner()))
+      ty.use_mut(|ty| subst_bound_tv(&map, ty));
+      *ty
     }
     _ => Rho::new(ty),
   }
@@ -136,7 +133,8 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
         })
         .collect();
       // no capture because skolem ty vars cannot be bound and they are all new.
-      let ty = subst_bound_tv(&map, ty.into_inner());
+      let mut ty = ty.into_inner();
+      subst_bound_tv(&map, &mut ty);
       skolemize(cx, ac, ty)
     }
     // @rule PRFUN
