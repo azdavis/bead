@@ -14,11 +14,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 /// variables to `ac`.
 pub(crate) fn meta_ty_vars(cx: &Cx, ac: &mut FxHashSet<MetaTyVar>, ty: &Ty) {
   match ty {
-    Ty::ForAll(_, ty) => meta_ty_vars(cx, ac, (**ty).as_ref()),
-    Ty::Fun(arg_ty, res_ty) => {
-      meta_ty_vars(cx, ac, arg_ty);
-      meta_ty_vars(cx, ac, res_ty);
-    }
     // the only interesting case. see the case in `subst`.
     Ty::MetaTyVar(tv) => match cx.get(*tv) {
       None => {
@@ -26,6 +21,11 @@ pub(crate) fn meta_ty_vars(cx: &Cx, ac: &mut FxHashSet<MetaTyVar>, ty: &Ty) {
       }
       Some(ty) => meta_ty_vars(cx, ac, ty.as_ref()),
     },
+    Ty::ForAll(_, ty) => meta_ty_vars(cx, ac, (**ty).as_ref()),
+    Ty::Fun(arg_ty, res_ty) => {
+      meta_ty_vars(cx, ac, arg_ty);
+      meta_ty_vars(cx, ac, res_ty);
+    }
     Ty::None | Ty::Int | Ty::Str | Ty::TyVar(_) => {}
   }
 }
@@ -40,10 +40,6 @@ pub(crate) fn free_ty_vars(cx: &Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
         ac.remove(&TyVar::Bound(tv.clone()));
       }
     }
-    Ty::Fun(arg_ty, res_ty) => {
-      free_ty_vars(cx, ac, arg_ty);
-      free_ty_vars(cx, ac, res_ty);
-    }
     // might be free, will be removed if bound
     Ty::TyVar(tv) => {
       ac.insert(tv.clone());
@@ -53,6 +49,10 @@ pub(crate) fn free_ty_vars(cx: &Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
       None => {}
       Some(ty) => free_ty_vars(cx, ac, ty.as_ref()),
     },
+    Ty::Fun(arg_ty, res_ty) => {
+      free_ty_vars(cx, ac, arg_ty);
+      free_ty_vars(cx, ac, res_ty);
+    }
     Ty::None | Ty::Int | Ty::Str => {}
   }
 }
@@ -179,12 +179,6 @@ pub(crate) fn quantify(
 /// context.
 pub(crate) fn subst(cx: &mut Cx, ty: &mut Ty) {
   match ty {
-    Ty::None | Ty::Int | Ty::Str | Ty::TyVar(_) => {}
-    Ty::ForAll(_, ty) => ty.use_mut(|ty| subst(cx, ty)),
-    Ty::Fun(arg_ty, res_ty) => {
-      subst(cx, arg_ty);
-      subst(cx, res_ty);
-    }
     // the only interesting case
     Ty::MetaTyVar(tv) => match cx.get(*tv) {
       None => {}
@@ -195,6 +189,12 @@ pub(crate) fn subst(cx: &mut Cx, ty: &mut Ty) {
         *ty = got_ty;
       }
     },
+    Ty::ForAll(_, ty) => ty.use_mut(|ty| subst(cx, ty)),
+    Ty::Fun(arg_ty, res_ty) => {
+      subst(cx, arg_ty);
+      subst(cx, res_ty);
+    }
+    Ty::None | Ty::Int | Ty::Str | Ty::TyVar(_) => {}
   }
 }
 
