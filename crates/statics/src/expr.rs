@@ -4,20 +4,20 @@ use crate::defs::Env;
 use crate::defs::{Cx, Entity as E, ErrorKind as EK, Rho, RhoRef, Ty, TyVar};
 use crate::lower;
 use crate::ty::{
-  free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify,
-  unify_fn, zonk,
+  free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, subst, unify,
+  unify_fn,
 };
 use hir::{Arenas, Expr, ExprIdx};
 use rustc_hash::FxHashSet;
 
-pub(crate) fn infer_ty_zonk(
+pub(crate) fn infer_ty_subst(
   cx: &mut Cx,
   arenas: &Arenas,
   env: &Env,
   expr: ExprIdx,
 ) -> Ty {
   let ty = infer_ty(cx, arenas, env, expr);
-  zonk(cx, ty)
+  subst(cx, ty)
 }
 
 /// The direction of typechecking.

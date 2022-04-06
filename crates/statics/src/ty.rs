@@ -7,11 +7,10 @@ use crate::defs::{
 use hir::Name;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-/// this does zonking "on the fly", so it is unnecessary to call [`zonk`] on a
-/// type before passing it into this.
+/// this substitutes on the fly.
 ///
-/// because zonking replaces bound meta type variables with the types they have
-/// been bound to, this has the effect of only adding unbound meta type
+/// because substitution replaces bound meta type variables with the types they
+/// have been bound to, this has the effect of only adding unbound meta type
 /// variables to `ac`.
 pub(crate) fn meta_ty_vars(
   cx: &mut Cx,
@@ -24,7 +23,7 @@ pub(crate) fn meta_ty_vars(
       meta_ty_vars(cx, ac, arg_ty);
       meta_ty_vars(cx, ac, res_ty);
     }
-    // the only interesting case. see the case in `zonk`.
+    // the only interesting case. see the case in `subst`.
     Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
       None => {
         ac.insert(*tv);
@@ -35,8 +34,7 @@ pub(crate) fn meta_ty_vars(
   }
 }
 
-/// this does zonking "on the fly", so it is unnecessary to call [`zonk`] on a
-/// type before passing it into this.
+/// this does substitution on the fly.
 pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound, *not* free
@@ -54,7 +52,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
     Ty::TyVar(tv) => {
       ac.insert(tv.clone());
     }
-    // see the case in `zonk`.
+    // see the case in `subst`.
     Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
       None => {}
       Some(ty) => free_ty_vars(cx, ac, ty.as_ref()),
@@ -63,10 +61,10 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
   }
 }
 
-/// this does _not_ zonk, nor does it need to. this is because [`MetaTyVar`]s
+/// this does _not_ subst, nor does it need to. this is because [`MetaTyVar`]s
 /// can only be bound to monotypes, which by definition contain no
-/// [`Ty::ForAll`]. since, therefore, zonking will never change what variables
-/// we add to `ac`, we don't bother to do it.
+/// [`Ty::ForAll`]. since, therefore, substitution will never change what
+/// variables we add to `ac`, we don't bother to do it.
 fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound
@@ -83,18 +81,18 @@ fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
 }
 
 /// this must not induce capture.
-fn subst(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
+fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: Ty) -> Ty {
   match ty {
     Ty::ForAll(tvs, ty) => {
       let mut map = map.clone();
       for tv in tvs {
         map.remove(&tv);
       }
-      subst(&map, ty.into_inner())
+      subst_bound_tv(&map, ty.into_inner())
     }
     Ty::Fun(arg_ty, res_ty) => {
-      let arg_ty = subst(map, *arg_ty);
-      let res_ty = subst(map, *res_ty);
+      let arg_ty = subst_bound_tv(map, *arg_ty);
+      let res_ty = subst_bound_tv(map, *res_ty);
       Ty::fun(arg_ty, res_ty)
     }
     Ty::TyVar(tv) => match tv {
@@ -121,7 +119,7 @@ pub(crate) fn instantiate(cx: &mut Cx, ty: Ty) -> Rho {
         .map(|tv| (tv, Ty::MetaTyVar(cx.new_meta_ty_var())))
         .collect();
       // no capture because MetaTyVars cannot be bound and they are all new.
-      Rho::new(subst(&map, ty.into_inner()))
+      Rho::new(subst_bound_tv(&map, ty.into_inner()))
     }
     _ => Rho::new(ty),
   }
@@ -142,7 +140,7 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
         })
         .collect();
       // no capture because skolem ty vars cannot be bound and they are all new.
-      let ty = subst(&map, ty.into_inner());
+      let ty = subst_bound_tv(&map, ty.into_inner());
       skolemize(cx, ac, ty)
     }
     // @rule PRFUN
@@ -173,20 +171,20 @@ pub(crate) fn quantify(cx: &mut Cx, set: &FxHashSet<MetaTyVar>, ty: Rho) -> Ty {
     let meta_tv = *iter.next().expect("checked len != 0");
     cx.set(meta_tv, Tau::new(Ty::TyVar(TyVar::Bound(bound_tv))));
   }
-  Ty::for_all(new_bound, Rho::new(zonk(cx, ty.into_inner())))
+  Ty::for_all(new_bound, Rho::new(subst(cx, ty.into_inner())))
 }
 
 /// replaces all meta type variables with their corresponding types from the
 /// context.
-pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
+pub(crate) fn subst(cx: &mut Cx, ty: Ty) -> Ty {
   match ty {
     Ty::ForAll(tvs, ty) => {
-      let ty = zonk(cx, ty.into_inner());
+      let ty = subst(cx, ty.into_inner());
       Ty::for_all(tvs, Rho::new(ty))
     }
     Ty::Fun(arg_ty, res_ty) => {
-      let arg_ty = zonk(cx, *arg_ty);
-      let res_ty = zonk(cx, *res_ty);
+      let arg_ty = subst(cx, *arg_ty);
+      let res_ty = subst(cx, *res_ty);
       Ty::fun(arg_ty, res_ty)
     }
     // the only interesting case
@@ -194,7 +192,7 @@ pub(crate) fn zonk(cx: &mut Cx, ty: Ty) -> Ty {
       None => Ty::MetaTyVar(tv),
       Some(ty) => {
         let ty = ty.clone().into_inner();
-        let ty = zonk(cx, ty);
+        let ty = subst(cx, ty);
         cx.reset(tv, Tau::new(ty.clone()));
         ty
       }
