@@ -18,7 +18,7 @@ mod ty;
 pub fn get(arenas: &hir::Arenas, expr: hir::ExprIdx) -> defs::Statics {
   let mut cx = defs::Cx::default();
   let env = defs::Env::default();
-  let ty = expr::infer_ty_subst(&mut cx, arenas, &env, expr);
+  let ty = expr::infer_ty(&mut cx, arenas, &env, expr);
   defs::Statics {
     ty,
     errors: cx.finish(),

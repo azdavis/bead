@@ -181,7 +181,7 @@ pub(crate) fn quantify(
 
 /// replaces all meta type variables with their corresponding types from the
 /// context.
-pub(crate) fn subst(cx: &mut Cx, ty: &mut Ty) {
+fn subst(cx: &mut Cx, ty: &mut Ty) {
   match ty {
     // the most interesting case
     Ty::MetaTyVar(tv) => match cx.get(*tv) {

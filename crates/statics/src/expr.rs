@@ -4,22 +4,10 @@ use crate::defs::Env;
 use crate::defs::{Cx, Entity as E, ErrorKind as EK, Rho, RhoRef, Ty, TyVar};
 use crate::lower;
 use crate::ty::{
-  free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, subst, unify,
-  unify_fn,
+  free_ty_vars, instantiate, meta_ty_vars, quantify, skolemize, unify, unify_fn,
 };
 use hir::{Arenas, Expr, ExprIdx};
 use rustc_hash::FxHashSet;
-
-pub(crate) fn infer_ty_subst(
-  cx: &mut Cx,
-  arenas: &Arenas,
-  env: &Env,
-  expr: ExprIdx,
-) -> Ty {
-  let mut ty = infer_ty(cx, arenas, env, expr);
-  subst(cx, &mut ty);
-  ty
-}
 
 /// The direction of typechecking.
 #[derive(Debug)]
@@ -122,7 +110,16 @@ fn tc_rho(
 }
 
 /// infer a rho type for `expr`, then generalize it to a forall.
-fn infer_ty(cx: &mut Cx, arenas: &Arenas, env: &Env, expr: ExprIdx) -> Ty {
+///
+/// NOTE: in the paper, the top-level algorithm first does this, then does
+/// subst. but this always returns what `quantify` returns, and quantify already
+/// does the subst. so the paper seems to be doing an extra unnecessary subst.
+pub(crate) fn infer_ty(
+  cx: &mut Cx,
+  arenas: &Arenas,
+  env: &Env,
+  expr: ExprIdx,
+) -> Ty {
   // @rule GEN1
   let mode = infer_rho(cx, arenas, env, expr);
   let mut env_tvs = FxHashSet::default();
