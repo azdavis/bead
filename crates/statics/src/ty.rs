@@ -207,6 +207,9 @@ pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: &Ty, ty2: &Ty) {
     | (_, Ty::ForAll(_, _)) => {
       unreachable!("bad types in unify: {:?} {:?}", ty1, ty2)
     }
+    (Ty::Int, Ty::Int) | (Ty::Str, Ty::Str) | (Ty::None, _) | (_, Ty::None) => {
+      // nothing
+    }
     (Ty::TyVar(tv1), Ty::TyVar(tv2)) => {
       if tv1 != tv2 {
         cx.err(entity, EK::CannotUnify(ty1.clone(), ty2.clone()));
@@ -238,9 +241,6 @@ pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: &Ty, ty2: &Ty) {
           cx.set(*tv1, Tau::new(t));
         }
       }
-    }
-    (Ty::Int, Ty::Int) | (Ty::Str, Ty::Str) | (Ty::None, _) | (_, Ty::None) => {
-      // nothing
     }
     (Ty::Fun(arg_ty1, res_ty1), Ty::Fun(arg_ty2, res_ty2)) => {
       unify(cx, entity, arg_ty1, arg_ty2);
