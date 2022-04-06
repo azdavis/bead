@@ -12,11 +12,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 /// because substitution replaces bound meta type variables with the types they
 /// have been bound to, this has the effect of only adding unbound meta type
 /// variables to `ac`.
-pub(crate) fn meta_ty_vars(
-  cx: &mut Cx,
-  ac: &mut FxHashSet<MetaTyVar>,
-  ty: &Ty,
-) {
+pub(crate) fn meta_ty_vars(cx: &Cx, ac: &mut FxHashSet<MetaTyVar>, ty: &Ty) {
   match ty {
     Ty::ForAll(_, ty) => meta_ty_vars(cx, ac, (**ty).as_ref()),
     Ty::Fun(arg_ty, res_ty) => {
@@ -24,7 +20,7 @@ pub(crate) fn meta_ty_vars(
       meta_ty_vars(cx, ac, res_ty);
     }
     // the only interesting case. see the case in `subst`.
-    Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
+    Ty::MetaTyVar(tv) => match cx.get(*tv) {
       None => {
         ac.insert(*tv);
       }
@@ -35,7 +31,7 @@ pub(crate) fn meta_ty_vars(
 }
 
 /// this does substitution on the fly.
-pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
+pub(crate) fn free_ty_vars(cx: &Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
   match ty {
     // `tvs` are bound, *not* free
     Ty::ForAll(tvs, ty) => {
@@ -53,7 +49,7 @@ pub(crate) fn free_ty_vars(cx: &mut Cx, ac: &mut FxHashSet<TyVar>, ty: &Ty) {
       ac.insert(tv.clone());
     }
     // see the case in `subst`.
-    Ty::MetaTyVar(tv) => match cx.get(*tv).cloned() {
+    Ty::MetaTyVar(tv) => match cx.get(*tv) {
       None => {}
       Some(ty) => free_ty_vars(cx, ac, ty.as_ref()),
     },
