@@ -151,7 +151,11 @@ pub(crate) fn skolemize(cx: &mut Cx, ac: &mut Vec<SkolemTyVar>, ty: Ty) -> Rho {
 
 /// replaces all meta type variables with new bound type variables, and binds
 /// them with a top-level forall.
-pub(crate) fn quantify(cx: &mut Cx, set: &FxHashSet<MetaTyVar>, ty: Rho) -> Ty {
+pub(crate) fn quantify(
+  cx: &mut Cx,
+  set: &FxHashSet<MetaTyVar>,
+  mut ty: Rho,
+) -> Ty {
   let mut used_bound = FxHashSet::default();
   bound_ty_vars(&mut used_bound, ty.as_ref());
   let mut iter = set.iter();
@@ -167,36 +171,30 @@ pub(crate) fn quantify(cx: &mut Cx, set: &FxHashSet<MetaTyVar>, ty: Rho) -> Ty {
     let meta_tv = *iter.next().expect("checked len != 0");
     cx.set(meta_tv, Tau::new(Ty::TyVar(TyVar::Bound(bound_tv))));
   }
-  Ty::for_all(new_bound, Rho::new(subst(cx, ty.into_inner())))
+  ty.use_mut(|ty| subst(cx, ty));
+  Ty::for_all(new_bound, ty)
 }
 
 /// replaces all meta type variables with their corresponding types from the
 /// context.
-pub(crate) fn subst(cx: &mut Cx, ty: Ty) -> Ty {
+pub(crate) fn subst(cx: &mut Cx, ty: &mut Ty) {
   match ty {
-    Ty::ForAll(tvs, ty) => {
-      let ty = subst(cx, ty.into_inner());
-      Ty::for_all(tvs, Rho::new(ty))
-    }
+    Ty::None | Ty::Int | Ty::Str | Ty::TyVar(_) => {}
+    Ty::ForAll(_, ty) => ty.use_mut(|ty| subst(cx, ty)),
     Ty::Fun(arg_ty, res_ty) => {
-      let arg_ty = subst(cx, *arg_ty);
-      let res_ty = subst(cx, *res_ty);
-      Ty::fun(arg_ty, res_ty)
+      subst(cx, arg_ty);
+      subst(cx, res_ty);
     }
     // the only interesting case
-    Ty::MetaTyVar(tv) => match cx.get(tv) {
-      None => Ty::MetaTyVar(tv),
-      Some(ty) => {
-        let ty = ty.clone().into_inner();
-        let ty = subst(cx, ty);
-        cx.reset(tv, Tau::new(ty.clone()));
-        ty
+    Ty::MetaTyVar(tv) => match cx.get(*tv) {
+      None => {}
+      Some(got_ty) => {
+        let mut got_ty = got_ty.clone().into_inner();
+        subst(cx, &mut got_ty);
+        cx.reset(*tv, Tau::new(got_ty.clone()));
+        *ty = got_ty;
       }
     },
-    Ty::None => Ty::None,
-    Ty::Int => Ty::Int,
-    Ty::Str => Ty::Str,
-    Ty::TyVar(tv) => Ty::TyVar(tv),
   }
 }
 

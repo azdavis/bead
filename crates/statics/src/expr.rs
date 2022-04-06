@@ -16,8 +16,9 @@ pub(crate) fn infer_ty_subst(
   env: &Env,
   expr: ExprIdx,
 ) -> Ty {
-  let ty = infer_ty(cx, arenas, env, expr);
-  subst(cx, ty)
+  let mut ty = infer_ty(cx, arenas, env, expr);
+  subst(cx, &mut ty);
+  ty
 }
 
 /// The direction of typechecking.

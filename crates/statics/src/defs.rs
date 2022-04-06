@@ -109,9 +109,9 @@ enum TyPrec {
 pub struct Rho(Ty);
 
 impl Rho {
-  /// Returns a new [`Rho`]. Panics in debug mode if it is a [`Ty::ForAll`].
+  /// Returns a new [`Rho`]. Panics if it is a [`Ty::ForAll`].
   pub(crate) fn new(ty: Ty) -> Self {
-    debug_assert!(Self::is_valid(&ty));
+    assert!(Self::is_valid(&ty));
     Self(ty)
   }
 
@@ -127,6 +127,14 @@ impl Rho {
   /// Unwraps the [`Ty`].
   pub(crate) fn into_inner(self) -> Ty {
     self.0
+  }
+
+  pub(crate) fn use_mut<F>(&mut self, f: F)
+  where
+    F: FnOnce(&mut Ty),
+  {
+    f(&mut self.0);
+    assert!(Self::is_valid(&self.0));
   }
 }
 
@@ -148,9 +156,9 @@ impl fmt::Display for Rho {
 pub(crate) struct Tau(Ty);
 
 impl Tau {
-  /// Returns a new [`Tau`]. Panics in debug mode if it contains [`Ty::ForAll`].
+  /// Returns a new [`Tau`]. Panics if it contains [`Ty::ForAll`].
   pub(crate) fn new(ty: Ty) -> Self {
-    debug_assert!(Self::is_valid(&ty));
+    assert!(Self::is_valid(&ty));
     Self(ty)
   }
 
