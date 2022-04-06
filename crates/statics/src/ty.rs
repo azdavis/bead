@@ -14,7 +14,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 /// variables to `ac`.
 pub(crate) fn meta_ty_vars(cx: &Cx, ac: &mut FxHashSet<MetaTyVar>, ty: &Ty) {
   match ty {
-    // the only interesting case. see the case in `subst`.
+    // the most interesting case. see the case in `subst`.
     Ty::MetaTyVar(tv) => match cx.get(*tv) {
       None => {
         ac.insert(*tv);
@@ -83,6 +83,15 @@ fn bound_ty_vars(ac: &mut FxHashSet<BoundTyVar>, ty: &Ty) {
 /// the caller must arrange so that this does not induce capture.
 fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: &mut Ty) {
   match ty {
+    // the most interesting case, which does the subst
+    Ty::TyVar(tv) => match tv {
+      TyVar::Bound(tv) => match map.get(tv) {
+        None => {}
+        Some(got_ty) => *ty = got_ty.clone(),
+      },
+      TyVar::Skolem(_) => {}
+    },
+    // the forall binds some vars
     Ty::ForAll(tvs, ty) => {
       let mut map = map.clone();
       for tv in tvs.iter() {
@@ -94,13 +103,6 @@ fn subst_bound_tv(map: &FxHashMap<BoundTyVar, Ty>, ty: &mut Ty) {
       subst_bound_tv(map, arg_ty);
       subst_bound_tv(map, res_ty);
     }
-    Ty::TyVar(tv) => match tv {
-      TyVar::Bound(tv) => match map.get(tv) {
-        None => {}
-        Some(got_ty) => *ty = got_ty.clone(),
-      },
-      TyVar::Skolem(_) => {}
-    },
     Ty::None | Ty::Int | Ty::Str | Ty::MetaTyVar(_) => {}
   }
 }
@@ -181,7 +183,7 @@ pub(crate) fn quantify(
 /// context.
 pub(crate) fn subst(cx: &mut Cx, ty: &mut Ty) {
   match ty {
-    // the only interesting case
+    // the most interesting case
     Ty::MetaTyVar(tv) => match cx.get(*tv) {
       None => {}
       Some(got_ty) => {
