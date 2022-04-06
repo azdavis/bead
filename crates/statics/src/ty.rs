@@ -239,13 +239,13 @@ pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: &Ty, ty2: &Ty) {
         }
       }
     }
-    (Ty::Int, Ty::Int) => {}
-    (Ty::Str, Ty::Str) => {}
+    (Ty::Int, Ty::Int) | (Ty::Str, Ty::Str) | (Ty::None, _) | (_, Ty::None) => {
+      // nothing
+    }
     (Ty::Fun(arg_ty1, res_ty1), Ty::Fun(arg_ty2, res_ty2)) => {
       unify(cx, entity, arg_ty1, arg_ty2);
       unify(cx, entity, res_ty1, res_ty2);
     }
-    (Ty::None, _) | (_, Ty::None) => {}
     (Ty::Int, _)
     | (_, Ty::Int)
     | (Ty::Str, _)
