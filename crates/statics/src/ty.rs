@@ -202,21 +202,21 @@ fn subst(cx: &mut Cx, ty: &mut Ty) {
   }
 }
 
-pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: &Ty, ty2: &Ty) {
+pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: Ty, ty2: Ty) {
   match (ty1, ty2) {
     // NOTE: this explicitly forbids forall, but the haskell code does not.
     (Ty::TyVar(TyVar::Bound(_)), _)
     | (_, Ty::TyVar(TyVar::Bound(_)))
     | (Ty::ForAll(_, _), _)
     | (_, Ty::ForAll(_, _)) => {
-      unreachable!("bad types in unify: {:?} {:?}", ty1, ty2)
+      unreachable!("bad types in unify")
     }
     (Ty::Int, Ty::Int) | (Ty::Str, Ty::Str) | (Ty::None, _) | (_, Ty::None) => {
       // nothing
     }
     (Ty::TyVar(tv1), Ty::TyVar(tv2)) => {
       if tv1 != tv2 {
-        cx.err(entity, EK::CannotUnify(ty1.clone(), ty2.clone()));
+        cx.err(entity, EK::CannotUnify(Ty::TyVar(tv1), Ty::TyVar(tv2)));
       }
     }
     (Ty::MetaTyVar(tv1), ty2) | (ty2, Ty::MetaTyVar(tv1)) => {
@@ -225,52 +225,45 @@ pub(crate) fn unify(cx: &mut Cx, entity: E, ty1: &Ty, ty2: &Ty) {
           return;
         }
       }
-      if let Some(ty1) = cx.get(*tv1).cloned() {
-        return unify(cx, entity, ty1.as_ref(), ty2);
+      if let Some(ty1) = cx.get(tv1).cloned() {
+        return unify(cx, entity, ty1.into_inner(), ty2);
       }
       match ty2 {
-        Ty::MetaTyVar(tv2) => match cx.get(*tv2).cloned() {
-          None => cx.set(*tv1, Tau::new(ty2.clone())),
-          Some(ty2) => unify(cx, entity, &Ty::MetaTyVar(*tv1), ty2.as_ref()),
+        Ty::MetaTyVar(tv2) => match cx.get(tv2).cloned() {
+          None => cx.set(tv1, Tau::new(ty2)),
+          Some(ty2) => unify(cx, entity, Ty::MetaTyVar(tv1), ty2.into_inner()),
         },
         _ => {
           let mut meta_tvs = FxHashSet::default();
-          meta_ty_vars(cx, &mut meta_tvs, ty2);
-          let t = if meta_tvs.contains(tv1) {
-            cx.err(entity, EK::OccursCheckFailed(ty2.clone(), *tv1));
+          meta_ty_vars(cx, &mut meta_tvs, &ty2);
+          let t = if meta_tvs.contains(&tv1) {
+            cx.err(entity, EK::OccursCheckFailed(ty2.clone(), tv1));
             Ty::None
           } else {
             ty2.clone()
           };
-          cx.set(*tv1, Tau::new(t));
+          cx.set(tv1, Tau::new(t));
         }
       }
     }
     (Ty::Fun(arg_ty1, res_ty1), Ty::Fun(arg_ty2, res_ty2)) => {
-      unify(cx, entity, arg_ty1, arg_ty2);
-      unify(cx, entity, res_ty1, res_ty2);
+      unify(cx, entity, *arg_ty1, *arg_ty2);
+      unify(cx, entity, *res_ty1, *res_ty2);
     }
-    (Ty::Int, _)
-    | (_, Ty::Int)
-    | (Ty::Str, _)
-    | (_, Ty::Str)
-    | (Ty::Fun(_, _), _)
-    | (_, Ty::Fun(_, _)) => {
-      cx.err(entity, EK::CannotUnify(ty1.clone(), ty2.clone()));
+    (ty1, ty2) => {
+      cx.err(entity, EK::CannotUnify(ty1, ty2));
     }
   }
 }
 
-pub(crate) fn unify_fn(cx: &mut Cx, entity: E, ty: &Rho) -> (Ty, Rho) {
-  match ty.as_ref() {
-    Ty::Fun(arg_ty, res_ty) => {
-      ((**arg_ty).clone(), Rho::new((**res_ty).clone()))
-    }
-    _ => {
+pub(crate) fn unify_fn(cx: &mut Cx, entity: E, ty: Rho) -> (Ty, Rho) {
+  match ty.into_inner() {
+    Ty::Fun(arg_ty, res_ty) => (*arg_ty, Rho::new(*res_ty)),
+    ty => {
       let arg_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
       let res_ty = Ty::MetaTyVar(cx.new_meta_ty_var());
       let fn_ty = Ty::fun(arg_ty.clone(), res_ty.clone());
-      unify(cx, entity, &fn_ty, ty.as_ref());
+      unify(cx, entity, fn_ty, ty);
       (arg_ty, Rho::new(res_ty))
     }
   }

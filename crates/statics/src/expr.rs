@@ -65,7 +65,7 @@ fn tc_rho(
       }
       // @rule ABS2
       Mode::Check(rho) => {
-        let (var_ty, body_ty) = unify_fn(cx, E::Expr(expr), &rho);
+        let (var_ty, body_ty) = unify_fn(cx, E::Expr(expr), rho);
         let env = env.clone().insert(var.clone(), var_ty);
         check_rho(cx, arenas, &env, body, body_ty);
       }
@@ -81,7 +81,7 @@ fn tc_rho(
       // @rule AABS2
       Mode::Check(rho) => {
         let var_ty = lower::ty(cx, arenas, var_ty);
-        let (arg_ty, body_ty) = unify_fn(cx, E::Expr(expr), &rho);
+        let (arg_ty, body_ty) = unify_fn(cx, E::Expr(expr), rho);
         subs_check(cx, E::Expr(expr), arg_ty, var_ty.clone());
         let env = env.clone().insert(var.clone(), var_ty);
         check_rho(cx, arenas, &env, body, body_ty);
@@ -90,7 +90,7 @@ fn tc_rho(
     // @rule APP
     Expr::App(fun, arg) => {
       let fun_ty = infer_rho(cx, arenas, env, fun);
-      let (arg_ty, res_ty) = unify_fn(cx, E::Expr(expr), &fun_ty);
+      let (arg_ty, res_ty) = unify_fn(cx, E::Expr(expr), fun_ty);
       check_ty(cx, arenas, env, arg, arg_ty);
       inst_ty(cx, E::Expr(expr), res_ty.into_inner(), mode);
     }
@@ -180,16 +180,16 @@ fn subs_check_rho(cx: &mut Cx, entity: E, ty: Ty, rho: Rho) {
     }
     // @rule FUN
     (rho1, Ty::Fun(a2, r2)) => {
-      let (a1, r1) = unify_fn(cx, entity, &Rho::new(rho1));
+      let (a1, r1) = unify_fn(cx, entity, Rho::new(rho1));
       subs_check_fun(cx, entity, a1, r1, *a2, Rho::new(*r2));
     }
     // this one too
     (Ty::Fun(a1, r1), rho2) => {
-      let (a2, r2) = unify_fn(cx, entity, &Rho::new(rho2));
+      let (a2, r2) = unify_fn(cx, entity, Rho::new(rho2));
       subs_check_fun(cx, entity, *a1, Rho::new(*r1), a2, r2);
     }
     // @rule MONO
-    (rho1, rho2) => unify(cx, entity, &rho1, &rho2),
+    (rho1, rho2) => unify(cx, entity, rho1, rho2),
   }
 }
 
